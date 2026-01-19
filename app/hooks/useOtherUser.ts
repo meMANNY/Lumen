@@ -1,22 +1,29 @@
 import { useSession } from "next-auth/react";
-import {useMemo} from "react";
+import { useMemo } from "react";
 import { FullConversationType } from "../types";
-import { User } from "@prisma/client";
+import { User, ConversationUser } from "@prisma/client";
 
+type ConversationWithUsers = FullConversationType | { users: (ConversationUser & { user: User })[] };
 
-const useOtherUser = (conversation: FullConversationType | {users: User[]}) => {
+const useOtherUser = (conversation: ConversationWithUsers) => {
 
     const session = useSession();
-    const otherUser = useMemo(()=>{
+    const otherUser = useMemo(() => {
 
         const currentUserEmail = session?.data?.user?.email;
-        
-        const otherUser  =conversation.users.filter((user)=> user.email != currentUserEmail);
 
-        return otherUser
-    },[session?.data?.user?.email, conversation.users ]);
+        // Handle junction table structure - extract user from ConversationUser
+        const otherUser = conversation.users.filter((conversationUser) => {
+            const user = 'user' in conversationUser ? conversationUser.user : conversationUser;
+            return user.email != currentUserEmail;
+        });
 
-return otherUser[0];
+        // Return the User object, not the ConversationUser wrapper
+        const result = otherUser[0];
+        return 'user' in result ? result.user : result;
+    }, [session?.data?.user?.email, conversation.users]);
+
+    return otherUser;
 }
 
 export default useOtherUser;

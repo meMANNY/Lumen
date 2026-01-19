@@ -9,15 +9,14 @@ import { FullMessageType } from "@/app/types";
 
 import Avatar from "@/app/components/Avatar";
 import ImageModal from "./ImageModal";
-// import ImageModal from "./ImageModal";
 
 interface MessageBoxProps {
   data: FullMessageType;
   isLast?: boolean;
 }
 
-const MessageBox: React.FC<MessageBoxProps> = ({ 
-  data, 
+const MessageBox: React.FC<MessageBoxProps> = ({
+  data,
   isLast
 }) => {
   const session = useSession();
@@ -25,21 +24,22 @@ const MessageBox: React.FC<MessageBoxProps> = ({
 
 
   const isOwn = session.data?.user?.email === data?.sender?.email
+  // Extract users from MessageSeen junction table
   const seenList = (data.seen || [])
-    .filter((user) => user.email !== data?.sender?.email)
-    .map((user) => user.name)
+    .filter((messageSeen) => messageSeen.user.email !== data?.sender?.email)
+    .map((messageSeen) => messageSeen.user.name)
     .join(', ');
 
   const container = clsx('flex gap-3 p-4', isOwn && 'justify-end');
   const avatar = clsx(isOwn && 'order-2');
   const body = clsx('flex flex-col gap-2', isOwn && 'items-end');
   const message = clsx(
-    'text-sm w-fit overflow-hidden', 
-    isOwn ? 'bg-sky-500 text-white' : 'bg-gray-100', 
+    'text-sm w-fit overflow-hidden',
+    isOwn ? 'bg-sky-500 text-white' : 'bg-gray-100',
     data.image ? 'rounded-md p-0' : 'rounded-full py-2 px-3'
   );
 
-  return ( 
+  return (
     <div className={container}>
       <div className={avatar}>
         <Avatar user={data.sender} />
@@ -54,14 +54,14 @@ const MessageBox: React.FC<MessageBoxProps> = ({
           </div>
         </div>
         <div className={message}>
-          { <ImageModal src={data.image} isOpen={imageModalOpen} onClose={() => setImageModalOpen(false)} /> }
+          {<ImageModal src={data.image} isOpen={imageModalOpen} onClose={() => setImageModalOpen(false)} />}
           {data.image ? (
             <Image
               alt="Image"
               height="288"
               width="288"
-              onClick={() => setImageModalOpen(true)} 
-              src={data.image} 
+              onClick={() => setImageModalOpen(true)}
+              src={data.image}
               className="
                 object-cover 
                 cursor-pointer 
@@ -75,7 +75,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
           )}
         </div>
         {isLast && isOwn && seenList.length > 0 && (
-          <div 
+          <div
             className="
             text-xs 
             font-light 
@@ -87,7 +87,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
         )}
       </div>
     </div>
-   );
+  );
 }
- 
+
 export default MessageBox;

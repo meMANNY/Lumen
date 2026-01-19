@@ -1,70 +1,71 @@
 'use client';
 
-import {useCallback, useMemo} from 'react';
+import { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Conversation, Message, User } from '@prisma/client';
 import { useSession } from 'next-auth/react';
-import format from 'date-fns';
+import { format } from 'date-fns';
 import clsx from 'clsx';
 import { FullConversationType } from '@/app/types';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import Avatar from '@/app/components/Avatar';
 import AvatarGroup from '@/app/components/AvatarGroup';
 
-interface ConversationBoxProps{
+interface ConversationBoxProps {
     data: FullConversationType,
     selected?: boolean;
 }
 
 
-const ConversationBox: React.FC<ConversationBoxProps> = ({data, selected}) => {
+const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => {
 
-    const otherUser  = useOtherUser(data);
+    const otherUser = useOtherUser(data);
     const session = useSession();
     const router = useRouter();
 
-    const handleClick = useCallback(()=>{
+    // Extract User[] from ConversationUser[] for components
+    const users = useMemo(() => data.users.map(cu => cu.user), [data.users]);
+
+    const handleClick = useCallback(() => {
         router.push(`/conversations/${data.id}`);
-    },[data.id, router])
-  
+    }, [data.id, router])
 
-        const lastMessage = useMemo(()=>{
-                const messages  = data.messages || [];
-                return messages[messages.length -1];
-        },[data.messages])
 
-        const userEmail = useMemo(()=>{
-            return session?.data?.user?.email
-        },[session?.data?.user?.email])
+    const lastMessage = useMemo(() => {
+        const messages = data.messages || [];
+        return messages[messages.length - 1];
+    }, [data.messages])
 
-        const hasSeen = useMemo(()=>{
-          if(!lastMessage)
-          {
+    const userEmail = useMemo(() => {
+        return session?.data?.user?.email
+    }, [session?.data?.user?.email])
+
+    const hasSeen = useMemo(() => {
+        if (!lastMessage) {
             return false;
-          }
+        }
 
-          const seenArray = lastMessage.seen || [];
-          if(!userEmail)
-          {
+        const seenArray = lastMessage.seen || [];
+        if (!userEmail) {
             return false;
-          }
-          return seenArray.filter((user)=> user.email == userEmail).length != 0;
-        },[userEmail, lastMessage]);
+        }
+        // Access user through MessageSeen junction table
+        return seenArray.filter((messageSeen) => messageSeen.user.email == userEmail).length != 0;
+    }, [userEmail, lastMessage]);
 
-        const lastMessageText = useMemo(()=>{
-          if(lastMessage?.image){
+    const lastMessageText = useMemo(() => {
+        if (lastMessage?.image) {
             return "sent an image";
-          }
-          if(lastMessage?.body){ 
+        }
+        if (lastMessage?.body) {
             return lastMessage?.body;
-          }
-          return "started a conversation";
-        },[lastMessage]);
+        }
+        return "started a conversation";
+    }, [lastMessage]);
 
-  return (
-    <div
-    onClick={handleClick}
-    className={clsx(`
+    return (
+        <div
+            onClick={handleClick}
+            className={clsx(`
       w-full 
       relative 
       flex 
@@ -76,37 +77,37 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({data, selected}) => {
       transition
       cursor-pointer
       `,
-      selected ? 'bg-neutral-100' : 'bg-white'
-    )}
-  >
-    {data.isGroup ? (
-      <AvatarGroup users={data.users} />
-    ) : (
-      <Avatar user={otherUser} />
-    )} 
+                selected ? 'bg-neutral-100' : 'bg-white'
+            )}
+        >
+            {data.isGroup ? (
+                <AvatarGroup users={users} />
+            ) : (
+                <Avatar user={otherUser} />
+            )}
 
-    <div className="min-w-0 flex-1">
-      <div className="focus:outline-none">
-        <span className="absolute inset-0" aria-hidden="true" />
-        <div className="flex justify-between items-center mb-1">
-          <p className="text-md font-medium text-gray-900">
-            {data.name || otherUser.name}
-          </p>
-        
-        </div>
-        <p 
-          className={clsx(`
+            <div className="min-w-0 flex-1">
+                <div className="focus:outline-none">
+                    <span className="absolute inset-0" aria-hidden="true" />
+                    <div className="flex justify-between items-center mb-1">
+                        <p className="text-md font-medium text-gray-900">
+                            {data.name || otherUser.name}
+                        </p>
+
+                    </div>
+                    <p
+                        className={clsx(`
             truncate 
             text-sm
             `,
-            hasSeen ? 'text-gray-500' : 'text-black font-medium'
-          )}>
-            {lastMessageText}
-          </p>
-      </div>
-    </div>
-  </div>
-  )
+                            hasSeen ? 'text-gray-500' : 'text-black font-medium'
+                        )}>
+                        {lastMessageText}
+                    </p>
+                </div>
+            </div>
+        </div>
+    )
 }
 
 export default ConversationBox
