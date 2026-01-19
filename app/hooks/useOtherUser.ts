@@ -13,7 +13,7 @@ const useOtherUser = (conversation: ConversationWithUsers) => {
         const currentUserEmail = session?.data?.user?.email;
 
         // Handle junction table structure - extract user from ConversationUser
-        const otherUser = conversation.users.filter((conversationUser) => {
+        const otherUser = conversation.users.filter((conversationUser: any) => {
             const user = 'user' in conversationUser ? conversationUser.user : conversationUser;
             return user.email != currentUserEmail;
         });

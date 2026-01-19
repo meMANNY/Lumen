@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         await pusherServer.trigger(conversationId, 'messages:new', messageWithSeen);
         const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
 
-        updatedConversation.users.forEach((conversationUser) => {
+        updatedConversation.users.forEach((conversationUser: any) => {
             if (conversationUser.user.email) {
                 pusherServer.trigger(conversationUser.user.email, 'conversation:update', {
                     id: conversationId,

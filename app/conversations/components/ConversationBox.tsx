@@ -23,7 +23,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
     const router = useRouter();
 
     // Extract User[] from ConversationUser[] for components
-    const users = useMemo(() => data.users.map(cu => cu.user), [data.users]);
+    const users = useMemo(() => data.users.map((cu: any) => cu.user), [data.users]);
 
     const handleClick = useCallback(() => {
         router.push(`/conversations/${data.id}`);
@@ -49,7 +49,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
             return false;
         }
         // Access user through MessageSeen junction table
-        return seenArray.filter((messageSeen) => messageSeen.user.email == userEmail).length != 0;
+        return seenArray.filter((messageSeen: any) => messageSeen.user.email == userEmail).length != 0;
     }, [userEmail, lastMessage]);
 
     const lastMessageText = useMemo(() => {

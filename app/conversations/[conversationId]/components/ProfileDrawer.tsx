@@ -31,7 +31,7 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     const isActive = members.indexOf(otherUser?.email!) !== -1;
 
     // Extract User[] from ConversationUser[] for components that need it
-    const users = useMemo(() => data.users.map(cu => cu.user), [data.users]);
+    const users = useMemo(() => data.users.map((cu: any) => cu.user), [data.users]);
 
     const joinedDate = useMemo(() => {
         return format(new Date(otherUser.createdAt), 'PP');
@@ -130,7 +130,7 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                                         Emails
                                                                     </dt>
                                                                     <dd className=" mt-1 text-sm text-gray-900 sm:col-span-2">
-                                                                        {users.map((user) => user.email).join(', ')}
+                                                                        {users.map((user: any) => user.email).join(', ')}
                                                                     </dd>
                                                                 </div>
                                                             )}
