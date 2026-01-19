@@ -22,9 +22,6 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
     const session = useSession();
     const router = useRouter();
 
-    // Extract User[] from ConversationUser[] for components
-    const users = useMemo(() => data.users.map((cu: any) => cu.user), [data.users]);
-
     const handleClick = useCallback(() => {
         router.push(`/conversations/${data.id}`);
     }, [data.id, router])
@@ -48,8 +45,8 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
         if (!userEmail) {
             return false;
         }
-        // Access user through MessageSeen junction table
-        return seenArray.filter((messageSeen: any) => messageSeen.user.email == userEmail).length != 0;
+        // seen is now User[] directly instead of MessageSeen[]
+        return seenArray.some((user) => user.email === userEmail);
     }, [userEmail, lastMessage]);
 
     const lastMessageText = useMemo(() => {
@@ -81,7 +78,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
             )}
         >
             {data.isGroup ? (
-                <AvatarGroup users={users} />
+                <AvatarGroup users={data.users} />
             ) : (
                 <Avatar user={otherUser} />
             )}

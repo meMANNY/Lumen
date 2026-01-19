@@ -24,11 +24,7 @@ export async function DELETE(
                 id: conversationId
             },
             include: {
-                users: {
-                    include: {
-                        user: true
-                    }
-                }
+                users: true
             }
         });
         if (!existingConversation) {
@@ -36,9 +32,7 @@ export async function DELETE(
         }
 
         // Check if current user is part of the conversation
-        const isUserInConversation = existingConversation.users.some(
-            cu => cu.userId === currentUser.id
-        );
+        const isUserInConversation = existingConversation.userIds.includes(currentUser.id);
 
         if (!isUserInConversation) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -50,9 +44,9 @@ export async function DELETE(
             },
         });
 
-        existingConversation.users.forEach((conversationUser) => {
-            if (conversationUser.user.email) {
-                pusherServer.trigger(conversationUser.user.email, 'conversation:remove', existingConversation);
+        existingConversation.users.forEach((user) => {
+            if (user.email) {
+                pusherServer.trigger(user.email, 'conversation:remove', existingConversation);
             }
         })
 

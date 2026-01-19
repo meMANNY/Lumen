@@ -4,7 +4,7 @@ import Avatar from "@/app/components/Avatar";
 import ConfirmModal from "./ConfirmModal";
 import useOtherUser from "@/app/hooks/useOtherUser";
 import { Dialog, Transition } from "@headlessui/react";
-import { Conversation, User, ConversationUser } from "@prisma/client";
+import { Conversation, User } from "@prisma/client";
 import { format } from "date-fns";
 import { Fragment, useMemo, useState } from "react";
 import { IoClose, IoTrash } from 'react-icons/io5';
@@ -16,7 +16,7 @@ interface ProfileDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     data: Conversation & {
-        users: (ConversationUser & { user: User })[];
+        users: User[];
     }
 }
 
@@ -29,9 +29,6 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     const [ConfirmOpen, setConfirmOpen] = useState(false);
     const { members } = useActiveList();
     const isActive = members.indexOf(otherUser?.email!) !== -1;
-
-    // Extract User[] from ConversationUser[] for components that need it
-    const users = useMemo(() => data.users.map((cu: any) => cu.user), [data.users]);
 
     const joinedDate = useMemo(() => {
         return format(new Date(otherUser.createdAt), 'PP');
@@ -98,7 +95,7 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                 <div className=" flex flex-col items-center">
                                                     <div className=" mb-2">
                                                         {data.isGroup ? (
-                                                            <AvatarGroup users={users} />
+                                                            <AvatarGroup users={data.users} />
                                                         ) : (
                                                             <Avatar user={otherUser} />
                                                         )}
@@ -130,7 +127,7 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                                         Emails
                                                                     </dt>
                                                                     <dd className=" mt-1 text-sm text-gray-900 sm:col-span-2">
-                                                                        {users.map((user: any) => user.email).join(', ')}
+                                                                        {data.users.map((user) => user.email).join(', ')}
                                                                     </dd>
                                                                 </div>
                                                             )}

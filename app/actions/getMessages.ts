@@ -10,11 +10,7 @@ const getMessages = async (
       },
       include: {
         sender: true,
-        seen: {
-          include: {
-            user: true
-          }
-        },
+        seen: true,
       },
       orderBy: {
         createdAt: 'asc'

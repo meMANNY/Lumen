@@ -24,10 +24,10 @@ const MessageBox: React.FC<MessageBoxProps> = ({
 
 
   const isOwn = session.data?.user?.email === data?.sender?.email
-  // Extract users from MessageSeen junction table
+  // seen is now User[] directly instead of MessageSeen[]
   const seenList = (data.seen || [])
-    .filter((messageSeen) => messageSeen.user.email !== data?.sender?.email)
-    .map((messageSeen) => messageSeen.user.name)
+    .filter((user) => user.email !== data?.sender?.email)
+    .map((user) => user.name)
     .join(', ');
 
   const container = clsx('flex gap-3 p-4', isOwn && 'justify-end');

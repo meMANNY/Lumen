@@ -18,42 +18,18 @@ export async function POST(request: Request) {
             return new NextResponse("unauthorised", { status: 401 });
         }
 
-        // Create message
+        // Create message with sender already marked as seen
         const newMessage = await prisma.message.create({
             data: {
                 body: message,
                 image: image,
                 conversationId: conversationId,
                 senderId: currentUser.id,
+                seenIds: [currentUser.id]
             },
             include: {
                 sender: true,
-                seen: {
-                    include: {
-                        user: true
-                    }
-                }
-            }
-        });
-
-        // Mark message as seen by sender
-        await prisma.messageSeen.create({
-            data: {
-                userId: currentUser.id,
-                messageId: newMessage.id
-            }
-        });
-
-        // Get updated message with seen info
-        const messageWithSeen = await prisma.message.findUnique({
-            where: { id: newMessage.id },
-            include: {
-                sender: true,
-                seen: {
-                    include: {
-                        user: true
-                    }
-                }
+                seen: true
             }
         });
 
@@ -63,38 +39,33 @@ export async function POST(request: Request) {
             },
             data: {
                 lastMessageAt: new Date(),
+                messagesIds: {
+                    push: newMessage.id
+                }
             },
             include: {
-                users: {
-                    include: {
-                        user: true
-                    }
-                },
+                users: true,
                 messages: {
                     include: {
-                        seen: {
-                            include: {
-                                user: true
-                            }
-                        }
+                        seen: true
                     }
                 }
             }
 
         })
-        await pusherServer.trigger(conversationId, 'messages:new', messageWithSeen);
+        await pusherServer.trigger(conversationId, 'messages:new', newMessage);
         const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
 
-        updatedConversation.users.forEach((conversationUser: any) => {
-            if (conversationUser.user.email) {
-                pusherServer.trigger(conversationUser.user.email, 'conversation:update', {
+        updatedConversation.users.forEach((user) => {
+            if (user.email) {
+                pusherServer.trigger(user.email, 'conversation:update', {
                     id: conversationId,
                     messages: [lastMessage]
                 })
             }
         });
 
-        return NextResponse.json(messageWithSeen);
+        return NextResponse.json(newMessage);
 
     } catch (error: any) {
         console.log(error, "ERROR_MESSAGES");

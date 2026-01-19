@@ -30,30 +30,20 @@ export async function POST(
         data: {
           name,
           isGroup,
-          users: {
-            create: [
-              ...members.map((member: { value: string }) => ({
-                userId: member.value
-              })),
-              {
-                userId: currentUser.id
-              }
-            ]
-          }
+          userIds: [
+            ...members.map((member: { value: string }) => member.value),
+            currentUser.id
+          ]
         },
         include: {
-          users: {
-            include: {
-              user: true
-            }
-          },
+          users: true,
         }
       });
 
       // Update all connections with new conversation
-      newConversation.users.forEach((conversationUser) => {
-        if (conversationUser.user.email) {
-          pusherServer.trigger(conversationUser.user.email, 'conversation:new', newConversation);
+      newConversation.users.forEach((user) => {
+        if (user.email) {
+          pusherServer.trigger(user.email, 'conversation:new', newConversation);
         }
       });
 
@@ -63,37 +53,22 @@ export async function POST(
     // Check if a 1:1 conversation already exists between these two users
     const existingConversations = await prisma.conversation.findMany({
       where: {
-        isGroup: false,
-        AND: [
+        OR: [
           {
-            users: {
-              some: {
-                userId: currentUser.id
-              }
+            userIds: {
+              equals: [currentUser.id, userId]
             }
           },
           {
-            users: {
-              some: {
-                userId: userId
-              }
+            userIds: {
+              equals: [userId, currentUser.id]
             }
           }
         ]
-      },
-      include: {
-        users: {
-          include: {
-            user: true
-          }
-        }
       }
     });
 
-    // Filter to find exact 2-person conversation
-    const singleConversation = existingConversations.find(
-      conv => conv.users.length === 2
-    );
+    const singleConversation = existingConversations[0];
 
     if (singleConversation) {
       return NextResponse.json(singleConversation);
@@ -101,30 +76,17 @@ export async function POST(
 
     const newConversation = await prisma.conversation.create({
       data: {
-        users: {
-          create: [
-            {
-              userId: currentUser.id
-            },
-            {
-              userId: userId
-            }
-          ]
-        }
+        userIds: [currentUser.id, userId]
       },
       include: {
-        users: {
-          include: {
-            user: true
-          }
-        }
+        users: true,
       }
     });
 
     // Update all connections with new conversation
-    newConversation.users.forEach((conversationUser) => {
-      if (conversationUser.user.email) {
-        pusherServer.trigger(conversationUser.user.email, 'conversation:new', newConversation);
+    newConversation.users.forEach((user) => {
+      if (user.email) {
+        pusherServer.trigger(user.email, 'conversation:new', newConversation);
       }
     });
 

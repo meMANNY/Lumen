@@ -14,26 +14,16 @@ const getConversations = async () => {
         lastMessageAt: 'desc',
       },
       where: {
-        users: {
-          some: {
-            userId: currentUser.id
-          }
+        userIds: {
+          has: currentUser.id
         }
       },
       include: {
-        users: {
-          include: {
-            user: true
-          }
-        },
+        users: true,
         messages: {
           include: {
             sender: true,
-            seen: {
-              include: {
-                user: true
-              }
-            },
+            seen: true,
           }
         },
       }

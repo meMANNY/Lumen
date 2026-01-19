@@ -2,7 +2,7 @@
 
 import Avatar from "@/app/components/Avatar";
 import useOtherUser from "@/app/hooks/useOtherUser";
-import { Conversation, User, ConversationUser } from "@prisma/client";
+import { Conversation, User } from "@prisma/client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { HiChevronLeft } from "react-icons/hi";
@@ -13,7 +13,7 @@ import useActiveList from "@/app/hooks/useActiveList";
 
 interface HeaderProps {
     conversation: Conversation & {
-        users: (ConversationUser & { user: User })[]
+        users: User[]
     }
 };
 
@@ -23,9 +23,6 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const { members } = useActiveList();
     const isActive = members.indexOf(otherUser?.email!) !== -1;
-
-    // Extract User[] from ConversationUser[] for components that need it
-    const users = useMemo(() => conversation.users.map(cu => cu.user), [conversation.users]);
 
     const statusText = useMemo(() => {
         if (conversation.isGroup) {
@@ -69,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                         <HiChevronLeft size={32} />
                     </Link>
                     {conversation.isGroup ? (
-                        <AvatarGroup users={users} />
+                        <AvatarGroup users={conversation.users} />
                     ) : (
                         <Avatar user={otherUser} />
                     )}

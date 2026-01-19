@@ -29,18 +29,10 @@ export async function POST(
       include: {
         messages: {
           include: {
-            seen: {
-              include: {
-                user: true
-              }
-            }
+            seen: true
           },
         },
-        users: {
-          include: {
-            user: true
-          }
-        },
+        users: true,
       },
     });
 
@@ -56,32 +48,25 @@ export async function POST(
     }
 
     // Check if user has already seen the message
-    const hasAlreadySeen = lastMessage.seen.some(s => s.userId === currentUser.id);
+    const hasAlreadySeen = lastMessage.seenIds.includes(currentUser.id);
 
     if (hasAlreadySeen) {
       return NextResponse.json(conversation);
     }
 
-    // Create seen record using junction table
-    await prisma.messageSeen.create({
-      data: {
-        userId: currentUser.id,
-        messageId: lastMessage.id
-      }
-    });
-
-    // Get updated message with seen info
-    const updatedMessage = await prisma.message.findUnique({
+    // Update message with new seen user using array push
+    const updatedMessage = await prisma.message.update({
       where: {
         id: lastMessage.id
       },
+      data: {
+        seenIds: {
+          push: currentUser.id
+        }
+      },
       include: {
         sender: true,
-        seen: {
-          include: {
-            user: true
-          }
-        },
+        seen: true,
       }
     });
 
