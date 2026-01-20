@@ -107,14 +107,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     options={{ maxFiles: 1 }} 
                     onUpload={handleUpload} 
                     uploadPreset="q4wapwim"
+                    className="flex justify-center rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                   >
-                    <Button
-                      disabled={isLoading}
-                      secondary
-                      type="button"
-                    >
-                      Change
-                    </Button>
+                    Change
                   </CldUploadButton>
                 </div>
               </div>
