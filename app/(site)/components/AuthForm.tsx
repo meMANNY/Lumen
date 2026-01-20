@@ -105,7 +105,7 @@ export default function AuthForm() {
             <form className="space-y-6"
             onSubmit={handleSubmit(onSubmit)}>
                { variant == 'REGISTER' && (
-                <Input id = "name" label = "name" register={register} errors= {errors}/>)}
+                <Input id = "name" label = "Name" register={register} errors= {errors}/>)}
 
                 <Input id = "email" label = "Email address" type = "email" register={register} errors= {errors}/>
                 <Input id = "password" label = "Password" type = "password" register={register} errors= {errors}/>
@@ -131,10 +131,10 @@ export default function AuthForm() {
 
             <div className="flex gap-2 justify-center text-sm mt-6 px-2 text-gray-500">
                 <div>
-                    {variant == "LOGIN" ? "New to Messenger" : "already have an account"}
+                    {variant == "LOGIN" ? "New to Messenger" : "Already have an account"}
                 </div>
-                <div onClick={toggleVariant} className=" underline cursor-pointer">
-                    {variant == "LOGIN" ? "Create an accout" : "Login"}
+                <div onClick={toggleVariant} className=" underline cursor-pointer font-bold">
+                    {variant == "LOGIN" ? "Create an account" : "Login"}
                 </div>
             </div>
         </div>
