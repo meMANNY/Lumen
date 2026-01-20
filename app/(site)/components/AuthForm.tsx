@@ -21,9 +21,10 @@ export default function AuthForm() {
     const [isLoading,setIsLoading] = useState(false);
 
     useEffect(()=>{
-        if(session?.status == "authenticated")
-        console.log("authenticated")
-        router.push('/users');
+        if(session?.status === "authenticated") {
+            console.log("authenticated");
+            router.push('/users');
+        }
     },[session?.status, router]);
 
 
@@ -87,7 +88,8 @@ export default function AuthForm() {
                 toast.error('invalid credentials');
             }
             if(callback?.ok && !callback?.error){
-                toast.success("Logged In")
+                toast.success("Logged In");
+                router.push('/users');
             }
 
         })
