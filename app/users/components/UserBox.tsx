@@ -40,11 +40,14 @@ const UserBox: React.FC<UserBoxProps> = ({
           flex 
           items-center 
           space-x-3 
-          bg-white 
           p-3 
-          hover:bg-neutral-100
-          rounded-lg
-          transition
+          my-1
+          hover:bg-slate-900/60
+          hover:scale-[1.01]
+          active:scale-[0.99]
+          rounded-xl
+          transition-all
+          duration-200
           cursor-pointer
         "
       >
@@ -53,7 +56,7 @@ const UserBox: React.FC<UserBoxProps> = ({
           <div className="focus:outline-none">
             <span className="absolute inset-0" aria-hidden="true" />
             <div className="flex justify-between items-center mb-1">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-slate-100">
                 {data.name}
               </p>
             </div>

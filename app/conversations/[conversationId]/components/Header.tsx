@@ -10,6 +10,8 @@ import { HiEllipsisHorizontal } from "react-icons/hi2";
 import ProfileDrawer from "./ProfileDrawer";
 import AvatarGroup from "@/app/components/AvatarGroup";
 import useActiveList from "@/app/hooks/useActiveList";
+import clsx from "clsx";
+
 
 interface HeaderProps {
     conversation: Conversation & {
@@ -36,32 +38,34 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                 data={conversation}
                 isOpen={drawerOpen}
                 onClose={() => setDrawerOpen(false)} />
-            <div
+             <div
                 className="
-            bg-white 
-            w-full 
-            flex 
-            border-b-[1px] 
-            sm:px-4 
-            py-3 
-            px-4 
-            lg:px-6 
-            justify-between 
-            items-center 
-            shadow-sm
-            "
+                  bg-slate-950/75
+                  backdrop-blur-md
+                  w-full 
+                  flex 
+                  border-b
+                  border-slate-900/50
+                  sm:px-4 
+                  py-3 
+                  px-4 
+                  lg:px-6 
+                  justify-between 
+                  items-center 
+                  shadow-sm
+                "
             >
                 <div className="flex gap-3 items-center">
                     <Link
                         href="/conversations"
                         className="
-                lg:hidden 
-                block 
-                text-sky-500 
-                hover:text-sky-600 
-                transition 
-                cursor-pointer
-                "
+                          lg:hidden 
+                          block 
+                          text-indigo-400 
+                          hover:text-indigo-300 
+                          transition 
+                          cursor-pointer
+                        "
                     >
                         <HiChevronLeft size={32} />
                     </Link>
@@ -70,10 +74,13 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                     ) : (
                         <Avatar user={otherUser} />
                     )}
-
+ 
                     <div className="flex flex-col">
-                        <div>{conversation.name || otherUser.name}</div>
-                        <div className="text-sm font-light text-neutral-500">
+                        <div className="text-slate-100 font-semibold">{conversation.name || otherUser.name}</div>
+                        <div className={clsx(
+                            "text-xs font-medium",
+                            conversation.isGroup ? "text-slate-400" : (isActive ? "text-emerald-400" : "text-slate-500")
+                        )}>
                             {statusText}
                         </div>
                     </div>
@@ -82,11 +89,14 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                     size={32}
                     onClick={() => setDrawerOpen(true)}
                     className="
-                text-sky-500
-                cursor-pointer
-                hover:text-sky-600
-                transition
-            "
+                      text-indigo-400
+                      cursor-pointer
+                      hover:text-indigo-300
+                      hover:scale-105
+                      active:scale-95
+                      transition-all
+                      duration-200
+                    "
                 />
             </div>
         </>

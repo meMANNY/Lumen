@@ -40,8 +40,9 @@ const Form = () => {
       className="
         py-4 
         px-4 
-        bg-white 
+        bg-slate-950 
         border-t 
+        border-slate-900/50
         flex 
         items-center 
         gap-2 
@@ -50,38 +51,44 @@ const Form = () => {
       "
     >   
         <CldUploadButton
-        options={{maxFiles: 1}}
-        onSuccess={handleUpload}
-        uploadPreset="q4wapwim"    >
-        <HiPhoto size={30} className="text-sky-500" />
+          options={{maxFiles: 1}}
+          onSuccess={handleUpload}
+          uploadPreset="q4wapwim"    
+        >
+          <HiPhoto size={30} className="text-slate-400 hover:text-indigo-400 hover:scale-105 active:scale-95 transition-all duration-200" />
         </CldUploadButton>
         <form 
-        onSubmit={handleSubmit(onSubmit)} 
-        className="flex items-center gap-2 lg:gap-4 w-full"
-      >
-        <MessageInput 
-            id="message" 
-            register={register} 
-            errors={errors} 
-            required 
-            placeholder="Write a message"
-        />
-            <button 
-        type="submit" 
-        className="
-            rounded-full 
-            p-2 
-            bg-sky-500 
-            cursor-pointer 
-            hover:bg-sky-600 
-            transition
-          "
+          onSubmit={handleSubmit(onSubmit)} 
+          className="flex items-center gap-2 lg:gap-4 w-full"
         >
-            <HiPaperAirplane
-            size ={18}
-            className = " text-white"/>
-        </button>
-
+          <MessageInput 
+              id="message" 
+              register={register} 
+              errors={errors} 
+              required 
+              placeholder="Write a message..."
+          />
+          <button 
+            type="submit" 
+            className="
+              rounded-xl 
+              p-2.5 
+              bg-indigo-600 
+              cursor-pointer 
+              hover:bg-indigo-500 
+              hover:scale-[1.05]
+              active:scale-[0.95]
+              transition-all
+              duration-200
+              shadow-md
+              shadow-indigo-900/25
+            "
+          >
+              <HiPaperAirplane
+                size ={18}
+                className = "text-white"
+              />
+          </button>
         </form>
     </div>
 

@@ -37,15 +37,16 @@ const Avatar: React.FC<AvatarProps> = ({ user }) => {
             absolute 
             block 
             rounded-full 
-            bg-green-500 
+            bg-emerald-500 
+            animate-pulse-glow
             ring-2 
-            ring-white 
+            ring-slate-950 
             top-0 
             right-0
-            h-2 
-            w-2 
-            md:h-3 
-            md:w-3
+            h-2.5 
+            w-2.5 
+            md:h-3.5 
+            md:w-3.5
           " 
         />
       )  }

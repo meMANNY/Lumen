@@ -63,18 +63,22 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
         <div
             onClick={handleClick}
             className={clsx(`
-      w-full 
-      relative 
-      flex 
-      items-center 
-      space-x-3 
-      p-3 
-      hover:bg-neutral-100
-      rounded-lg
-      transition
-      cursor-pointer
-      `,
-                selected ? 'bg-neutral-100' : 'bg-white'
+              w-full 
+              relative 
+              flex 
+              items-center 
+              space-x-3 
+              p-3 
+              my-1
+              hover:bg-slate-900/60
+              hover:scale-[1.01]
+              active:scale-[0.99]
+              rounded-xl
+              transition-all
+              duration-200
+              cursor-pointer
+            `,
+                selected ? 'bg-slate-900 border border-slate-800/80 shadow-inner' : 'bg-transparent border border-transparent'
             )}
         >
             {data.isGroup ? (
@@ -87,17 +91,21 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
                 <div className="focus:outline-none">
                     <span className="absolute inset-0" aria-hidden="true" />
                     <div className="flex justify-between items-center mb-1">
-                        <p className="text-md font-medium text-gray-900">
+                        <p className="text-md font-semibold text-slate-100">
                             {data.name || otherUser?.name}
                         </p>
-
+                        {lastMessage?.createdAt && (
+                            <p className="text-xs text-slate-400 font-light">
+                                {format(new Date(lastMessage.createdAt), 'p')}
+                            </p>
+                        )}
                     </div>
                     <p
                         className={clsx(`
-            truncate 
-            text-sm
-            `,
-                            hasSeen ? 'text-gray-500' : 'text-black font-medium'
+                          truncate 
+                          text-xs
+                        `,
+                            hasSeen ? 'text-slate-400' : 'text-indigo-300 font-semibold'
                         )}>
                         {lastMessageText}
                     </p>

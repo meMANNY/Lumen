@@ -94,23 +94,30 @@ const ConversationList: React.FC<ConversationListProps> = ({
         lg:block
         overflow-y-auto 
         border-r 
-        border-gray-200 
+        border-slate-900 
+        bg-slate-950
       `, isOpen ? 'hidden' : 'block w-full left-0')}>
         <div className="px-5">
           <div className="flex justify-between mb-4 pt-4">
-            <div className="text-2xl font-bold text-neutral-800">
+            <div className="text-2xl font-extrabold tracking-tight text-slate-100">
               Messages
             </div>
             <div 
               onClick={() => setIsModalOpen(true)} 
               className="
-                rounded-full 
-                p-2 
-                bg-gray-100 
-                text-gray-600 
+                rounded-xl 
+                p-2.5 
+                bg-slate-900 
+                border 
+                border-slate-800/80
+                text-slate-300 
                 cursor-pointer 
-                hover:opacity-75 
-                transition
+                hover:bg-slate-800/80
+                hover:text-indigo-400
+                hover:scale-105
+                active:scale-95
+                transition-all
+                duration-200
               "
             >
               <MdOutlineGroupAdd size={20} />

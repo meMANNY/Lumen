@@ -30,16 +30,20 @@ const DesktopItem: React.FC<DesktopItemProps> = ({
             group 
             flex 
             gap-x-3 
-            rounded-md 
+            rounded-xl 
             p-3 
             text-sm 
             leading-6 
             font-semibold 
-            text-gray-500 
-            hover:text-black 
-            hover:bg-gray-100
+            text-slate-400 
+            hover:text-indigo-400 
+            hover:bg-slate-900/60
+            hover:scale-[1.05]
+            active:scale-[0.95]
+            transition-all
+            duration-200
           `,
-            active && 'bg-gray-100 text-black'
+            active && 'bg-slate-900 text-indigo-400 border border-slate-800/60 shadow-inner'
           )}
       >
         <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
@@ -47,6 +51,7 @@ const DesktopItem: React.FC<DesktopItemProps> = ({
       </Link>
     </li>
    );
+
 }
  
 export default DesktopItem;

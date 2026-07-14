@@ -63,7 +63,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [] }) => {
   }, [conversationId]);
 
   return ( 
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto bg-[#070b14] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/10 via-[#070b14] to-[#070b14]">
       {messages.map((message, i) => (
         <MessageBox 
           isLast={i === messages.length - 1} 
