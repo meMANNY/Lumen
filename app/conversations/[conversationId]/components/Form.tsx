@@ -2,6 +2,7 @@
 
 import useConversation from "@/app/hooks/useConversation";
 import axios from "axios";
+import { useRef } from "react";
 import {  FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { HiPhoto } from "react-icons/hi2";
 import { HiPaperClip, HiEmojiHappy } from "react-icons/hi";
@@ -12,6 +13,7 @@ import toast from "react-hot-toast";
 
 const Form = () => {
     const {conversationId} = useConversation();
+    const formRef = useRef<HTMLFormElement>(null);
 
     const {register, handleSubmit, setValue,
     formState:{
@@ -60,16 +62,18 @@ const Form = () => {
             </div>
           </CldUploadButton>
           
-          <form 
-            onSubmit={handleSubmit(onSubmit)} 
-            className="flex-1 flex items-center gap-2"
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex-1 flex items-end gap-2"
           >
-            <MessageInput 
-                id="message" 
-                register={register} 
-                errors={errors} 
-                required 
+            <MessageInput
+                id="message"
+                register={register}
+                errors={errors}
+                required
                 placeholder="Write a message..."
+                onEnter={() => formRef.current?.requestSubmit()}
             />
             <button className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-white/[0.07] hover:text-amber-200" type="button" aria-label="Add emoji">
               <HiEmojiHappy size={18} />

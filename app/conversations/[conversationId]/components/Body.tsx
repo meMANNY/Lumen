@@ -150,7 +150,7 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [], initialCursor }) => {
           previousMessage={i > 0 ? messages[i - 1] : undefined}
         />
       ))}
-      <div className="pt-24" ref={bottomRef} />
+      <div className="pt-6" ref={bottomRef} />
     </div>
   );
 }
