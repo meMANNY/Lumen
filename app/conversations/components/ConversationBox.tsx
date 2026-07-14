@@ -60,25 +60,23 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
     }, [lastMessage]);
 
     return (
-        <div
+        <button
             onClick={handleClick}
             className={clsx(`
-              w-full 
-              relative 
               flex 
+              w-full 
               items-center 
-              space-x-3 
-              p-3 
-              my-1
-              hover:bg-slate-900/60
-              hover:scale-[1.01]
-              active:scale-[0.99]
-              rounded-xl
+              gap-3 
+              rounded-2xl 
+              px-3 
+              py-3 
+              text-left 
               transition-all
               duration-200
-              cursor-pointer
             `,
-                selected ? 'bg-slate-900 border border-slate-800/80 shadow-inner' : 'bg-transparent border border-transparent'
+                selected 
+                  ? "bg-gradient-to-r from-violet-400/[0.16] to-transparent shadow-[inset_1px_0_0_rgba(196,181,253,0.65)]" 
+                  : "hover:bg-white/[0.045]"
             )}
         >
             {data.isGroup ? (
@@ -90,28 +88,39 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
             <div className="min-w-0 flex-1">
                 <div className="focus:outline-none">
                     <span className="absolute inset-0" aria-hidden="true" />
-                    <div className="flex justify-between items-center mb-1">
-                        <p className="text-md font-semibold text-slate-100">
+                    <div className="flex justify-between gap-2">
+                        <span className="truncate text-sm font-semibold text-slate-100">
                             {data.name || otherUser?.name}
-                        </p>
+                        </span>
                         {lastMessage?.createdAt && (
-                            <p className="text-xs text-slate-400 font-light">
+                            <span className={clsx(`
+                              font-mono 
+                              text-[10px]
+                            `,
+                                selected ? "text-violet-200" : "text-slate-500"
+                            )}>
                                 {format(new Date(lastMessage.createdAt), 'p')}
-                            </p>
+                            </span>
                         )}
                     </div>
                     <p
                         className={clsx(`
+                          mt-1 
                           truncate 
-                          text-xs
+                          text-[12px]
                         `,
-                            hasSeen ? 'text-slate-400' : 'text-indigo-300 font-semibold'
+                            hasSeen ? 'text-slate-500' : 'text-slate-200 font-semibold'
                         )}>
                         {lastMessageText}
                     </p>
                 </div>
             </div>
-        </div>
+            {!hasSeen && (
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-violet-300 font-mono text-[10px] font-bold text-violet-950">
+                    1
+                </span>
+            )}
+        </button>
     )
 }
 

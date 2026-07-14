@@ -1,5 +1,7 @@
 # Security + Reliability Pass — Messenger Clone
 
+> **Status (2026-07-14): Implemented.** All 6 phases below plus two extra performance fixes (sidebar `take: -1` on messages, `Promise.all` in the conversations layout) were applied. `npm run build` and `npx tsc --noEmit` both pass clean. Verified live: unauthenticated `POST /api/messages` → 401, invalid `POST /api/register` payload → 400, unauthenticated `POST /api/pusher/auth` → 401. Full manual checklist (two-browser realtime, pagination scroll behavior, presence) still needs a human pass — see the checklist at the bottom. One open item: `npm audit` still reports 7 vulnerabilities (postcss inside Next.js itself — no fix upstream yet; tar/bcrypt need a breaking `bcrypt@6.0.0` bump via `npm audit fix --force`, deliberately not applied without sign-off since it touches password hashing).
+
 ## Context
 
 The app (Next.js 15 App Router + NextAuth v5 + Prisma/MongoDB + Pusher + Cloudinary) works on the happy path but has real authorization holes and no production hardening. Goal: make it safe and reliable enough for personal use. Approved scope: **security + reliability** — membership guards, private Pusher channels, Zod validation, message pagination, error handling, env housekeeping. Explicitly out of scope: rate limiting, optimistic sends, typing indicators, tests/CI.
@@ -89,3 +91,10 @@ Risk: server triggers + client subscriptions must land together or realtime sile
 8. **Errors**: temporary throw in a server component → boundary renders, "Try again" works; kill network + send → toast, draft restored.
 9. **Env**: fresh `.env` from `.env.example` boots; Pusher connects (env cluster); upload works (env preset). `npm run build` passes (confirms Pages/App router conflict resolved).
 10. **Deps**: `npm ls next` shows a single patched 15.x version (no CVE-2025-66478 warning on install); `npm audit` shows no critical findings.
+
+## Post-implementation notes (2026-07-14)
+
+- **Not yet done**: steps 1, 3, 4, 5, 6, 7 above require a logged-in browser session (or two, for cross-user checks) and haven't been run — do this manually before treating the app as done. Restart the dev server first (`auth.ts` callbacks and the two new `.env` vars need a fresh process, not just hot-reload).
+- **`npm audit`**: 22 → 7 vulnerabilities after the Next.js upgrade + `npm audit fix`. Remaining: `postcss` (bundled inside `next@15.5.20` itself, no upstream fix yet — not actionable from this repo), and `tar`/`bcrypt` (fixable only via `npm audit fix --force`, which bumps `bcrypt` to `6.0.0`, a breaking major version — deliberately left alone since it's auth-critical; do this deliberately, not as a drive-by fix).
+- **MessageBox.tsx `isOwn`**: left on the existing email-based check (`session.data?.user?.email === data.sender.email`) rather than switching to `senderId === session.user.id` — it still works correctly since `sender.email` is always populated, and the file already had heavy UI-redesign changes in flight that weren't worth re-touching for an optional, non-functional change.
+- **`useActiveChannel.ts`**: left unchanged (still subscribes to the literal `'presence-messenger'` string rather than importing `PRESENCE_CHANNEL` from `channels.ts`) — functionally identical, just not using the shared constant. Low-priority cleanup if you touch that file again.

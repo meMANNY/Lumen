@@ -5,7 +5,7 @@ import useOtherUser from "@/app/hooks/useOtherUser";
 import { Conversation, User } from "@prisma/client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { HiChevronLeft } from "react-icons/hi";
+import { HiChevronLeft, HiSearch } from "react-icons/hi";
 import { HiEllipsisHorizontal } from "react-icons/hi2";
 import ProfileDrawer from "./ProfileDrawer";
 import AvatarGroup from "@/app/components/AvatarGroup";
@@ -24,13 +24,13 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
     const otherUser = useOtherUser(conversation);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const { members } = useActiveList();
-    const isActive = members.indexOf(otherUser?.email!) !== -1;
+    const isActive = members.indexOf(otherUser?.id!) !== -1;
 
     const statusText = useMemo(() => {
         if (conversation.isGroup) {
             return `${conversation.users.length} members`;
         }
-        return isActive ? 'Active' : 'Offline';
+        return isActive ? 'Active now' : 'Offline';
     }, [conversation, isActive])
     return (
         <>
@@ -40,19 +40,16 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                 onClose={() => setDrawerOpen(false)} />
              <div
                 className="
-                  bg-slate-950/75
-                  backdrop-blur-md
-                  w-full 
                   flex 
-                  border-b
-                  border-slate-900/50
-                  sm:px-4 
-                  py-3 
-                  px-4 
-                  lg:px-6 
-                  justify-between 
+                  h-[88px] 
                   items-center 
-                  shadow-sm
+                  justify-between 
+                  border-b 
+                  border-white/[0.07] 
+                  bg-[#11131e]/40 
+                  px-5 
+                  sm:px-8
+                  w-full
                 "
             >
                 <div className="flex gap-3 items-center">
@@ -61,43 +58,49 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                         className="
                           lg:hidden 
                           block 
-                          text-indigo-400 
-                          hover:text-indigo-300 
+                          text-slate-400 
+                          hover:text-white 
                           transition 
                           cursor-pointer
                         "
                     >
-                        <HiChevronLeft size={32} />
+                        <HiChevronLeft size={28} />
                     </Link>
-                    {conversation.isGroup ? (
-                        <AvatarGroup users={conversation.users} />
-                    ) : (
-                        <Avatar user={otherUser} />
-                    )}
+                    <div className="relative">
+                        {conversation.isGroup ? (
+                            <AvatarGroup users={conversation.users} />
+                        ) : (
+                            <Avatar user={otherUser} />
+                        )}
+                        {isActive && !conversation.isGroup && (
+                            <span className="absolute bottom-0.5 right-0.5 size-3 rounded-full border-2 border-[#141621] bg-emerald-400 animate-pulse-glow" />
+                        )}
+                    </div>
  
                     <div className="flex flex-col">
-                        <div className="text-slate-100 font-semibold">{conversation.name || otherUser.name}</div>
-                        <div className={clsx(
-                            "text-xs font-medium",
-                            conversation.isGroup ? "text-slate-400" : (isActive ? "text-emerald-400" : "text-slate-500")
+                        <h2 className="text-[15px] font-semibold text-white">
+                            {conversation.name || otherUser.name}
+                        </h2>
+                        <p className={clsx(
+                            "text-xs font-medium mt-0.5",
+                            conversation.isGroup ? "text-slate-400" : (isActive ? "text-emerald-300" : "text-slate-500")
                         )}>
                             {statusText}
-                        </div>
+                        </p>
                     </div>
                 </div>
-                <HiEllipsisHorizontal
-                    size={32}
-                    onClick={() => setDrawerOpen(true)}
-                    className="
-                      text-indigo-400
-                      cursor-pointer
-                      hover:text-indigo-300
-                      hover:scale-105
-                      active:scale-95
-                      transition-all
-                      duration-200
-                    "
-                />
+                <div className="flex gap-1">
+                    <button className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white" aria-label="Search conversation">
+                        <HiSearch size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setDrawerOpen(true)} 
+                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white" 
+                        aria-label="More options"
+                    >
+                        <HiEllipsisHorizontal size={19} />
+                    </button>
+                </div>
             </div>
         </>
     )

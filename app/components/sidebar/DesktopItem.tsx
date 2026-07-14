@@ -23,30 +23,28 @@ const DesktopItem: React.FC<DesktopItemProps> = ({
   };
 
   return ( 
-    <li onClick={handleClick} key={label}>
+    <li onClick={handleClick} key={label} className="relative flex items-center justify-center">
+      {active && (
+        <span className="absolute -left-[21px] h-5 w-1 rounded-r-full bg-violet-300" />
+      )}
       <Link
         href={href}
         className={clsx(`
             group 
-            flex 
-            gap-x-3 
-            rounded-xl 
-            p-3 
-            text-sm 
-            leading-6 
-            font-semibold 
-            text-slate-400 
-            hover:text-indigo-400 
-            hover:bg-slate-900/60
-            hover:scale-[1.05]
-            active:scale-[0.95]
+            relative 
+            grid 
+            size-11 
+            place-items-center 
+            rounded-2xl 
             transition-all
             duration-200
+            hover:scale-105
+            active:scale-95
           `,
-            active && 'bg-slate-900 text-indigo-400 border border-slate-800/60 shadow-inner'
+            active ? "bg-white/[0.11] text-white" : "text-slate-500 hover:bg-white/[0.06] hover:text-slate-200"
           )}
       >
-        <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+        <Icon className="size-[19px]" aria-hidden="true" />
         <span className="sr-only">{label}</span>
       </Link>
     </li>

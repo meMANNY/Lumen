@@ -2,6 +2,8 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from '@/app/libs/prismadb';
 import { pusherServer } from "@/app/libs/pusher";
+import getConversationForUser from "@/app/libs/getConversationForUser";
+import { userChannel } from "@/app/libs/channels";
 
 interface IParams {
     conversationId?: string;
@@ -15,27 +17,14 @@ export async function DELETE(
         const { conversationId } = await params;
         const currentUser = await getCurrentUser();
 
-        if (!currentUser?.id) {
+        if (!currentUser?.id || !conversationId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        const existingConversation = await prisma.conversation.findUnique({
-            where: {
-                id: conversationId
-            },
-            include: {
-                users: true
-            }
-        });
+        const existingConversation = await getConversationForUser(conversationId, currentUser.id);
+
         if (!existingConversation) {
-            return new NextResponse("Invalid ID", { status: 400 });
-        }
-
-        // Check if current user is part of the conversation
-        const isUserInConversation = existingConversation.userIds.includes(currentUser.id);
-
-        if (!isUserInConversation) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return new NextResponse("Forbidden", { status: 403 });
         }
 
         const deletedConversation = await prisma.conversation.delete({
@@ -45,9 +34,7 @@ export async function DELETE(
         });
 
         existingConversation.users.forEach((user) => {
-            if (user.email) {
-                pusherServer.trigger(user.email, 'conversation:remove', existingConversation);
-            }
+            pusherServer.trigger(userChannel(user.id), 'conversation:remove', existingConversation);
         })
 
         return NextResponse.json(deletedConversation)

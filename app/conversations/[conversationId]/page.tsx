@@ -14,7 +14,7 @@ const ConversationId = async ({ params }: { params: Promise<IParams> }) => {
     const { conversationId } = await params;
 
     const conversation = await getConversationById(conversationId);
-    const messages = await getMessages(conversationId);
+    const { messages, nextCursor } = await getMessages(conversationId);
 
     if (!conversation) {
         return (
@@ -30,7 +30,7 @@ const ConversationId = async ({ params }: { params: Promise<IParams> }) => {
         <div className=" lg: pl-80 h-full">
             <div className=" h-full flex flex-col" >
                 <Header conversation={conversation} />
-                <Body initialMessages={messages} />
+                <Body initialMessages={messages} initialCursor={nextCursor} />
                 <Form />
             </div>
 

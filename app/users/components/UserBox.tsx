@@ -32,23 +32,20 @@ const UserBox: React.FC<UserBoxProps> = ({
       { isLoading && (<LoadingModal />)
         
        }
-      <div
+      <button
         onClick={handleClick}
         className="
-          w-full 
-          relative 
           flex 
+          w-full 
           items-center 
-          space-x-3 
-          p-3 
-          my-1
-          hover:bg-slate-900/60
-          hover:scale-[1.01]
-          active:scale-[0.99]
-          rounded-xl
+          gap-3 
+          rounded-2xl 
+          px-3 
+          py-3 
+          text-left 
           transition-all
           duration-200
-          cursor-pointer
+          hover:bg-white/[0.045]
         "
       >
         <Avatar user={data} />
@@ -56,13 +53,13 @@ const UserBox: React.FC<UserBoxProps> = ({
           <div className="focus:outline-none">
             <span className="absolute inset-0" aria-hidden="true" />
             <div className="flex justify-between items-center mb-1">
-              <p className="text-sm font-medium text-slate-100">
+              <span className="truncate text-sm font-semibold text-slate-100">
                 {data.name}
-              </p>
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      </button>
     </>
   );
 }

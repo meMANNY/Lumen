@@ -15,34 +15,23 @@ const UserList: React.FC<UserListProps> = ({
   return ( 
     <aside 
       className="
-        fixed 
-        inset-y-0 
-        pb-20
-        lg:pb-0
-        lg:left-20 
-        lg:w-80 
-        lg:block
-        overflow-y-auto 
+        w-full 
+        md:w-[335px] 
+        shrink-0 
         border-r 
-        border-slate-900
-        bg-slate-950
-        block w-full left-0
+        border-white/[0.07] 
+        bg-[#12141f]/72 
+        flex 
+        flex-col
       "
     >
-      <div className="px-5">
+      <div className="px-6 pb-4 pt-7 flex flex-col shrink-0">
         <div className="flex-col">
-          <div 
-            className="
-              text-2xl 
-              font-extrabold
-              tracking-tight
-              text-slate-100 
-              py-4
-            "
-          >
-            People
-          </div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">Lumen / directory</p>
+          <h1 className="mt-1.5 font-serif text-[27px] font-medium tracking-[-0.025em] text-white">Directory</h1>
         </div>
+      </div>
+      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {items.map((item) => (
           <UserBox
             key={item.id}

@@ -1,25 +1,47 @@
 import prisma from "@/app/libs/prismadb";
+import getCurrentUser from "./getCurrentUser";
+import getConversationForUser from "@/app/libs/getConversationForUser";
 
-const getMessages = async (
-  conversationId: string
-) => {
+export const MESSAGES_PAGE_SIZE = 50;
+
+const getMessages = async (conversationId: string) => {
   try {
-    const messages = await prisma.message.findMany({
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser?.id) {
+      return { messages: [], nextCursor: null };
+    }
+
+    const conversation = await getConversationForUser(conversationId, currentUser.id);
+
+    if (!conversation) {
+      return { messages: [], nextCursor: null };
+    }
+
+    const items = await prisma.message.findMany({
       where: {
-        conversationId: conversationId
+        conversationId,
       },
       include: {
         sender: true,
         seen: true,
       },
       orderBy: {
-        createdAt: 'asc'
-      }
+        createdAt: 'desc',
+      },
+      take: MESSAGES_PAGE_SIZE + 1,
     });
 
-    return messages;
+    const hasMore = items.length > MESSAGES_PAGE_SIZE;
+    const page = hasMore ? items.slice(0, MESSAGES_PAGE_SIZE) : items;
+    const messages = page.reverse();
+
+    return {
+      messages,
+      nextCursor: hasMore ? messages[0].id : null,
+    };
   } catch (error: any) {
-    return [];
+    return { messages: [], nextCursor: null };
   }
 };
 

@@ -13,84 +13,99 @@ import ImageModal from "./ImageModal";
 interface MessageBoxProps {
   data: FullMessageType;
   isLast?: boolean;
+  previousMessage?: FullMessageType;
 }
 
 const MessageBox: React.FC<MessageBoxProps> = ({
   data,
-  isLast
+  isLast,
+  previousMessage
 }) => {
   const session = useSession();
   const [imageModalOpen, setImageModalOpen] = useState(false);
-
 
   const isOwn = session.data?.user?.email === data?.sender?.email
   const seenUsers = (data.seen || [])
     .filter((user) => user.email !== data?.sender?.email);
 
-  const container = clsx('flex gap-3 p-4', isOwn && 'justify-end');
+  const container = clsx('flex gap-3 px-5 sm:px-8 py-3', isOwn && 'justify-end');
   const avatar = clsx(isOwn && 'order-2');
   const body = clsx('flex flex-col gap-1', isOwn && 'items-end');
   const message = clsx(
-    'text-sm w-fit overflow-hidden shadow-sm',
+    'text-[14px] w-fit overflow-hidden shadow-sm leading-6',
     isOwn 
-      ? 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-500 text-white' 
-      : 'bg-slate-900 border border-slate-800/80 text-slate-100',
+      ? 'bg-gradient-to-br from-violet-400 via-violet-500 to-indigo-500 text-white' 
+      : 'border border-white/[0.07] bg-white/[0.055] text-slate-200',
     data.image 
       ? 'rounded-xl p-0' 
-      : (isOwn ? 'rounded-2xl rounded-tr-none py-2.5 px-4' : 'rounded-2xl rounded-tl-none py-2.5 px-4')
+      : (isOwn ? 'rounded-[19px] rounded-br-md py-2.5 px-4' : 'rounded-[19px] rounded-tl-md py-2.5 px-4')
   );
 
+  const isDifferentDay = !previousMessage || 
+    new Date(data.createdAt).toDateString() !== new Date(previousMessage.createdAt).toDateString();
+
   return (
-    <div className={container}>
-      <div className={avatar}>
-        <Avatar user={data.sender} />
-      </div>
-      <div className={body}>
-        <div className="flex items-center gap-1.5">
-          <div className="text-xs text-slate-400 font-semibold">
-            {data.sender.name}
-          </div>
-          <div className="text-[10px] text-slate-500">
-            {format(new Date(data.createdAt), 'p')}
-          </div>
+    <div className="flex flex-col w-full">
+      {isDifferentDay && (
+        <div className="mb-6 mt-4 flex items-center gap-4 w-full px-5 sm:px-8">
+          <div className="h-px flex-1 bg-white/[0.07]" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate-500">
+            {format(new Date(data.createdAt), 'EEEE, d MMMM')}
+          </span>
+          <div className="h-px flex-1 bg-white/[0.07]" />
         </div>
-        <div className={message}>
-          {<ImageModal src={data.image} isOpen={imageModalOpen} onClose={() => setImageModalOpen(false)} />}
-          {data.image ? (
-            <Image
-              alt="Image"
-              height="288"
-              width="288"
-              onClick={() => setImageModalOpen(true)}
-              src={data.image}
-              className="
-                object-cover 
-                cursor-pointer 
-                hover:scale-105 
-                transition 
-                duration-300
-              "
-            />
-          ) : (
-            <div>{data.body}</div>
+      )}
+      <div className={container}>
+        <div className={avatar}>
+          <Avatar user={data.sender} size="sm" />
+        </div>
+        <div className={body}>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-500">
+              {data.sender.name}
+            </span>
+            <span className="font-mono text-[9px] text-slate-600">
+              {format(new Date(data.createdAt), 'p')}
+            </span>
+          </div>
+          <div className={message}>
+            {<ImageModal src={data.image} isOpen={imageModalOpen} onClose={() => setImageModalOpen(false)} />}
+            {data.image ? (
+              <Image
+                alt="Image"
+                height="288"
+                width="288"
+                onClick={() => setImageModalOpen(true)}
+                src={data.image}
+                className="
+                  object-cover 
+                  cursor-pointer 
+                  hover:scale-105 
+                  transition 
+                  duration-300
+                "
+              />
+            ) : (
+              <div>{data.body}</div>
+            )}
+          </div>
+          {isLast && isOwn && seenUsers.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] text-slate-500 font-medium">Seen</span>
+              <div className="flex -space-x-1.5 overflow-hidden">
+                {seenUsers.map((user) => (
+                  <div key={user.id} className="relative h-4.5 w-4.5 rounded-full ring-1 ring-slate-950 overflow-hidden">
+                    <Image
+                      fill
+                      src={user.image || '/images/placeholder.jpg'}
+                      alt="Seen avatar"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-        {isLast && isOwn && seenUsers.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] text-slate-500 font-medium">Seen</span>
-            <div className="flex -space-x-1.5 overflow-hidden">
-              {seenUsers.map((user) => (
-                <div key={user.id} className="relative h-4.5 w-4.5 rounded-full ring-1 ring-slate-950 overflow-hidden">
-                  <Image
-                    fill
-                    src={user.image || '/images/placeholder.jpg'}
-                    alt="Seen avatar"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
