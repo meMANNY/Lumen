@@ -8,6 +8,7 @@ import { Menu, Transition } from "@headlessui/react";
 import { MdOutlineGroupAdd } from 'react-icons/md';
 import { HiSearch } from 'react-icons/hi';
 import { HiArchiveBox, HiEllipsisHorizontal, HiSparkles } from 'react-icons/hi2';
+import { BsPinAngle } from 'react-icons/bs';
 import axios from "axios";
 import toast from "react-hot-toast";
 import clsx from "clsx";
@@ -34,9 +35,9 @@ const ConversationList: React.FC<ConversationListProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [selectMode, setSelectMode] = useState(false);
+  const [selectMode, setSelectMode] = useState<'archive' | 'pin' | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isArchiving, setIsArchiving] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -56,7 +57,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 
   // Leaving/entering the archived view resets any pending selection
   useEffect(() => {
-    setSelectMode(false);
+    setSelectMode(null);
     setSelectedIds([]);
   }, [archivedView]);
 
@@ -77,6 +78,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
       return false;
     }
     return (conversation.archivedByIds || []).includes(currentUserId);
+  }, [currentUserId]);
+
+  const isPinned = useCallback((conversation: FullConversationType) => {
+    if (!currentUserId) {
+      return false;
+    }
+    return (conversation.pinnedByIds || []).includes(currentUserId);
   }, [currentUserId]);
 
   const conversationName = useCallback((conversation: FullConversationType) => {
@@ -117,16 +125,21 @@ const ConversationList: React.FC<ConversationListProps> = ({
     });
   }, [visibleItems, filter, query, isUnread, conversationName]);
 
-  const { todayItems, earlierItems } = useMemo(() => {
+  const { pinnedItems, todayItems, earlierItems } = useMemo(() => {
+    const pinned: FullConversationType[] = [];
     const today: FullConversationType[] = [];
     const earlier: FullConversationType[] = [];
     const todayString = new Date().toDateString();
     filteredItems.forEach((item) => {
+      if (!archivedView && isPinned(item)) {
+        pinned.push(item);
+        return;
+      }
       const stamp = new Date(item.lastMessageAt).toDateString();
       (stamp === todayString ? today : earlier).push(item);
     });
-    return { todayItems: today, earlierItems: earlier };
-  }, [filteredItems]);
+    return { pinnedItems: pinned, todayItems: today, earlierItems: earlier };
+  }, [filteredItems, isPinned, archivedView]);
 
   useEffect(() => {
     if (!pusherKey) {
@@ -142,6 +155,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             ...currentConversation,
             ...(conversation.messages ? { messages: conversation.messages } : {}),
             ...(conversation.archivedByIds ? { archivedByIds: conversation.archivedByIds } : {}),
+            ...(conversation.pinnedByIds ? { pinnedByIds: conversation.pinnedByIds } : {}),
           };
         }
 
@@ -184,10 +198,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
   }, []);
 
   const setArchived = useCallback(async (ids: string[], archived: boolean) => {
-    if (!ids.length || isArchiving) {
+    if (!ids.length || isMutating) {
       return;
     }
-    setIsArchiving(true);
+    setIsMutating(true);
     try {
       await Promise.all(
         ids.map((id) => axios.post(`/api/conversations/${id}/archive`, { archived }))
@@ -208,14 +222,59 @@ const ConversationList: React.FC<ConversationListProps> = ({
           ? `Archived ${ids.length} chat${ids.length === 1 ? '' : 's'}`
           : `Unarchived ${ids.length} chat${ids.length === 1 ? '' : 's'}`
       );
-      setSelectMode(false);
+      setSelectMode(null);
       setSelectedIds([]);
     } catch {
       toast.error("Couldn't update the archive");
     } finally {
-      setIsArchiving(false);
+      setIsMutating(false);
     }
-  }, [currentUserId, isArchiving]);
+  }, [currentUserId, isMutating]);
+
+  const setPinned = useCallback(async (ids: string[], pinned: boolean) => {
+    if (!ids.length || isMutating) {
+      return;
+    }
+    setIsMutating(true);
+    try {
+      await Promise.all(
+        ids.map((id) => axios.post(`/api/conversations/${id}/pin`, { pinned }))
+      );
+      if (currentUserId) {
+        setItems((current) => current.map((item) => {
+          if (!ids.includes(item.id)) {
+            return item;
+          }
+          const pinnedByIds = pinned
+            ? Array.from(new Set([...(item.pinnedByIds || []), currentUserId]))
+            : (item.pinnedByIds || []).filter((userId) => userId !== currentUserId);
+          return { ...item, pinnedByIds };
+        }));
+      }
+      toast.success(
+        pinned
+          ? `Pinned ${ids.length} chat${ids.length === 1 ? '' : 's'}`
+          : `Unpinned ${ids.length} chat${ids.length === 1 ? '' : 's'}`
+      );
+      setSelectMode(null);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Couldn't update pins");
+    } finally {
+      setIsMutating(false);
+    }
+  }, [currentUserId, isMutating]);
+
+  // Drives the Pin/Unpin toggle in the selection action bar
+  const allSelectedPinned = useMemo(() => {
+    if (selectedIds.length === 0) {
+      return false;
+    }
+    return selectedIds.every((id) => {
+      const item = items.find((conversation) => conversation.id === id);
+      return item ? isPinned(item) : false;
+    });
+  }, [selectedIds, items, isPinned]);
 
   return (
     <>
@@ -295,7 +354,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                   <Menu.Item>
                     {({ active }) => (
                       <button
-                        onClick={() => { setSelectMode(true); setSelectedIds([]); }}
+                        onClick={() => { setSelectMode('archive'); setSelectedIds([]); }}
                         className={clsx(
                           "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-200 transition",
                           active && "bg-white/[0.06] text-white"
@@ -306,6 +365,22 @@ const ConversationList: React.FC<ConversationListProps> = ({
                       </button>
                     )}
                   </Menu.Item>
+                  {!archivedView && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => { setSelectMode('pin'); setSelectedIds([]); }}
+                          className={clsx(
+                            "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-200 transition",
+                            active && "bg-white/[0.06] text-white"
+                          )}
+                        >
+                          <BsPinAngle size={15} className="text-slate-400" />
+                          Select chats to pin
+                        </button>
+                      )}
+                    </Menu.Item>
+                  )}
                 </Menu.Items>
               </Transition>
             </Menu>
@@ -358,15 +433,31 @@ const ConversationList: React.FC<ConversationListProps> = ({
         </div>
 
         <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {pinnedItems.length > 0 && (
+            <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.19em] text-slate-500">Pinned</p>
+          )}
+          {pinnedItems.map((item) => (
+            <ConversationBox
+              key={item.id}
+              data={item}
+              selected={conversationId === item.id}
+              selectMode={!!selectMode}
+              isChecked={selectedIds.includes(item.id)}
+              isPinned
+              onToggleSelect={() => toggleSelect(item.id)}
+              onSwipeArchive={() => setArchived([item.id], !archivedView)}
+              swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
+            />
+          ))}
           {todayItems.length > 0 && (
-            <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.19em] text-slate-500">Today</p>
+            <p className={clsx("px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.19em] text-slate-500", pinnedItems.length > 0 && "pt-4")}>Today</p>
           )}
           {todayItems.map((item) => (
             <ConversationBox
               key={item.id}
               data={item}
               selected={conversationId === item.id}
-              selectMode={selectMode}
+              selectMode={!!selectMode}
               isChecked={selectedIds.includes(item.id)}
               onToggleSelect={() => toggleSelect(item.id)}
               onSwipeArchive={() => setArchived([item.id], !archivedView)}
@@ -374,14 +465,14 @@ const ConversationList: React.FC<ConversationListProps> = ({
             />
           ))}
           {earlierItems.length > 0 && (
-            <p className={clsx("px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.19em] text-slate-500", todayItems.length > 0 && "pt-4")}>Earlier</p>
+            <p className={clsx("px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.19em] text-slate-500", (todayItems.length > 0 || pinnedItems.length > 0) && "pt-4")}>Earlier</p>
           )}
           {earlierItems.map((item) => (
             <ConversationBox
               key={item.id}
               data={item}
               selected={conversationId === item.id}
-              selectMode={selectMode}
+              selectMode={!!selectMode}
               isChecked={selectedIds.includes(item.id)}
               onToggleSelect={() => toggleSelect(item.id)}
               onSwipeArchive={() => setArchived([item.id], !archivedView)}
@@ -404,14 +495,18 @@ const ConversationList: React.FC<ConversationListProps> = ({
         {selectMode ? (
           <div className="mx-4 mb-5 flex items-center gap-3">
             <button
-              onClick={() => { setSelectMode(false); setSelectedIds([]); }}
+              onClick={() => { setSelectMode(null); setSelectedIds([]); }}
               className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08]"
             >
               Cancel
             </button>
             <button
-              onClick={() => setArchived(selectedIds, !archivedView)}
-              disabled={selectedIds.length === 0 || isArchiving}
+              onClick={() =>
+                selectMode === 'archive'
+                  ? setArchived(selectedIds, !archivedView)
+                  : setPinned(selectedIds, !allSelectedPinned)
+              }
+              disabled={selectedIds.length === 0 || isMutating}
               className="
                 flex-1
                 rounded-2xl
@@ -430,7 +525,9 @@ const ConversationList: React.FC<ConversationListProps> = ({
                 disabled:hover:bg-violet-400
               "
             >
-              {archivedView ? 'Unarchive' : 'Archive'}
+              {selectMode === 'archive'
+                ? (archivedView ? 'Unarchive' : 'Archive')
+                : (allSelectedPinned ? 'Unpin' : 'Pin')}
               {selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
             </button>
           </div>

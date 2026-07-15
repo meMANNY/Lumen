@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import clsx from 'clsx';
 import { HiCheck } from 'react-icons/hi';
 import { HiArchiveBox } from 'react-icons/hi2';
+import { BsPinAngleFill } from 'react-icons/bs';
 import { FullConversationType } from '@/app/types';
 import useOtherUser from '@/app/hooks/useOtherUser';
 import Avatar from '@/app/components/Avatar';
@@ -17,6 +18,7 @@ interface ConversationBoxProps {
     selected?: boolean;
     selectMode?: boolean;
     isChecked?: boolean;
+    isPinned?: boolean;
     onToggleSelect?: () => void;
     // Called when the row is swiped left past the threshold (mobile)
     onSwipeArchive?: () => void;
@@ -31,6 +33,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({
     selected,
     selectMode,
     isChecked,
+    isPinned,
     onToggleSelect,
     onSwipeArchive,
     swipeActionLabel = 'Archive'
@@ -168,16 +171,21 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({
                             <span className="truncate text-sm font-semibold text-slate-100">
                                 {data.name || otherUser?.name}
                             </span>
-                            {lastMessage?.createdAt && (
-                                <span className={clsx(`
-                                  font-mono
-                                  text-[10px]
-                                `,
-                                    selected ? "text-violet-200" : "text-slate-500"
-                                )}>
-                                    {format(new Date(lastMessage.createdAt), 'p')}
-                                </span>
-                            )}
+                            <span className="flex shrink-0 items-center gap-1.5">
+                                {isPinned && (
+                                    <BsPinAngleFill className={clsx("size-3", selected ? "text-violet-200" : "text-violet-300/70")} />
+                                )}
+                                {lastMessage?.createdAt && (
+                                    <span className={clsx(`
+                                      font-mono
+                                      text-[10px]
+                                    `,
+                                        selected ? "text-violet-200" : "text-slate-500"
+                                    )}>
+                                        {format(new Date(lastMessage.createdAt), 'p')}
+                                    </span>
+                                )}
+                            </span>
                         </div>
                         <p
                             className={clsx(`

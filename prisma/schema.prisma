@@ -59,6 +59,8 @@ model Conversation {
   archivedByIds String[] @db.ObjectId @default([])
   // Group admins (the creator, initially) — may add/remove members
   adminIds String[] @db.ObjectId @default([])
+  // Users who pinned this conversation to the top of their inbox
+  pinnedByIds String[] @db.ObjectId @default([])
   
   messagesIds String[] @db.ObjectId
   messages Message[]
