@@ -15,12 +15,33 @@ interface MessageBoxProps {
   data: FullMessageType;
   isLast?: boolean;
   previousMessage?: FullMessageType;
+  searchQuery?: string;
+  isActiveMatch?: boolean;
 }
+
+const highlightMatches = (text: string, query: string) => {
+  if (!query) {
+    return text;
+  }
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = text.split(new RegExp(`(${escaped})`, 'ig'));
+  return parts.map((part, index) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={index} className="rounded-sm bg-amber-300/40 px-0.5 text-inherit">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+};
 
 const MessageBox: React.FC<MessageBoxProps> = ({
   data,
   isLast,
-  previousMessage
+  previousMessage,
+  searchQuery,
+  isActiveMatch
 }) => {
   const session = useSession();
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -37,16 +58,17 @@ const MessageBox: React.FC<MessageBoxProps> = ({
     isOwn 
       ? 'bg-gradient-to-br from-violet-400 via-violet-500 to-indigo-500 text-white' 
       : 'border border-white/[0.07] bg-white/[0.055] text-slate-200',
-    data.image 
-      ? 'rounded-xl p-0' 
-      : (isOwn ? 'rounded-[19px] rounded-br-md py-2.5 px-4' : 'rounded-[19px] rounded-tl-md py-2.5 px-4')
+    data.image
+      ? 'rounded-xl p-0'
+      : (isOwn ? 'rounded-[19px] rounded-br-md py-2.5 px-4' : 'rounded-[19px] rounded-tl-md py-2.5 px-4'),
+    isActiveMatch && 'ring-2 ring-amber-300/70'
   );
 
   const isDifferentDay = !previousMessage || 
     new Date(data.createdAt).toDateString() !== new Date(previousMessage.createdAt).toDateString();
 
   return (
-    <div className="flex flex-col w-full">
+    <div id={`message-${data.id}`} className="flex flex-col w-full">
       {isDifferentDay && (
         <div className="mb-6 mt-4 flex items-center gap-4 w-full px-5 sm:px-8">
           <div className="h-px flex-1 bg-white/[0.07]" />
@@ -89,7 +111,7 @@ const MessageBox: React.FC<MessageBoxProps> = ({
                 "
               />
             ) : (
-              <div>{data.body}</div>
+              <div>{data.body ? highlightMatches(data.body, searchQuery || '') : data.body}</div>
             )}
           </div>
           {isLast && isOwn && seenUsers.length > 0 && (

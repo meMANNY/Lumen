@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { pusherClient } from "@/app/libs/pusher";
 import { conversationChannel } from "@/app/libs/channels";
 import useConversation from "@/app/hooks/useConversation";
+import useChatSearch from "@/app/hooks/useChatSearch";
 import MessageBox from "./MessageBox";
 import { FullMessageType } from "@/app/types";
 import { find } from "lodash";
@@ -31,6 +32,38 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [], initialCursor }) => {
 
   const { conversationId } = useConversation();
   const session = useSession();
+
+  const searchOpen = useChatSearch((state) => state.isOpen);
+  const searchQuery = useChatSearch((state) => state.query);
+  const matchIds = useChatSearch((state) => state.matchIds);
+  const activeIndex = useChatSearch((state) => state.activeIndex);
+  const setMatchIds = useChatSearch((state) => state.setMatchIds);
+
+  const trimmedQuery = searchOpen ? searchQuery.trim().toLowerCase() : '';
+  const activeMatchId = matchIds[activeIndex];
+
+  // Publish matching message ids (newest first) whenever messages or query change
+  useEffect(() => {
+    if (!trimmedQuery) {
+      setMatchIds([]);
+      return;
+    }
+    const ids = messages
+      .filter((message) => message.body?.toLowerCase().includes(trimmedQuery))
+      .map((message) => message.id)
+      .reverse();
+    setMatchIds(ids);
+  }, [messages, trimmedQuery, setMatchIds]);
+
+  // Bring the active match into view
+  useEffect(() => {
+    if (!activeMatchId) {
+      return;
+    }
+    document
+      .getElementById(`message-${activeMatchId}`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [activeMatchId]);
 
   useEffect(() => {
     setMessages(initialMessages);
@@ -148,6 +181,8 @@ const Body: React.FC<BodyProps> = ({ initialMessages = [], initialCursor }) => {
           key={message.id}
           data={message}
           previousMessage={i > 0 ? messages[i - 1] : undefined}
+          searchQuery={trimmedQuery}
+          isActiveMatch={message.id === activeMatchId}
         />
       ))}
       <div className="pt-6" ref={bottomRef} />
