@@ -46,6 +46,41 @@ const DesktopItem: React.FC<DesktopItemProps> = ({
       >
         <Icon className="size-[19px]" aria-hidden="true" />
         <span className="sr-only">{label}</span>
+        <span
+          role="tooltip"
+          className="
+            pointer-events-none
+            absolute
+            left-full
+            z-50
+            ml-4
+            whitespace-nowrap
+            rounded-lg
+            border
+            border-white/10
+            bg-[#191c2a]/95
+            px-2.5
+            py-1.5
+            font-mono
+            text-[10px]
+            uppercase
+            tracking-[0.14em]
+            text-slate-200
+            opacity-0
+            shadow-lg
+            shadow-black/40
+            backdrop-blur-xl
+            transition-all
+            duration-200
+            -translate-x-1
+            group-hover:translate-x-0
+            group-hover:opacity-100
+            group-focus-visible:translate-x-0
+            group-focus-visible:opacity-100
+          "
+        >
+          {label}
+        </span>
       </Link>
     </li>
    );
