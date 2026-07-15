@@ -13,13 +13,15 @@ export default async function Sidebar({children}: {children: React.ReactNode}) {
       {/* Grid textures */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.26] [background-image:linear-gradient(rgba(255,255,255,0.032)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.032)_1px,transparent_1px)] [background-size:54px_54px]" />
 
-      <div className="relative mx-auto flex h-full max-w-[1600px] p-3 sm:p-5">
-        <section className="flex h-full w-full overflow-hidden rounded-[28px] border border-white/10 bg-[#10121d]/85 shadow-[0_24px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-          <DesktopSidebar currentUser={currentUser!} />
+      <div className="relative mx-auto flex h-full max-w-[1600px] sm:p-5">
+        <section className="flex h-full w-full flex-col overflow-hidden bg-[#10121d]/85 backdrop-blur-2xl sm:rounded-[28px] sm:border sm:border-white/10 sm:shadow-[0_24px_100px_rgba(0,0,0,0.45)]">
+          <div className="flex min-h-0 flex-1">
+            <DesktopSidebar currentUser={currentUser!} />
+            <main className="h-full flex-1 min-w-0 overflow-hidden">
+              {children}
+            </main>
+          </div>
           <MobileFooter />
-          <main className="flex-1 min-w-0 h-full overflow-hidden">
-            {children}
-          </main>
         </section>
       </div>
     </div>

@@ -30,9 +30,9 @@ const MessageBox: React.FC<MessageBoxProps> = ({
 
   const container = clsx('flex gap-3 px-5 sm:px-8 py-3', isOwn && 'justify-end');
   const avatar = clsx(isOwn && 'order-2');
-  const body = clsx('flex flex-col gap-1', isOwn && 'items-end');
+  const body = clsx('flex min-w-0 flex-col gap-1', isOwn && 'items-end');
   const message = clsx(
-    'text-[14px] w-fit overflow-hidden shadow-sm leading-6',
+    'text-[14px] w-fit max-w-[85vw] sm:max-w-md lg:max-w-lg overflow-hidden break-words shadow-sm leading-6',
     isOwn 
       ? 'bg-gradient-to-br from-violet-400 via-violet-500 to-indigo-500 text-white' 
       : 'border border-white/[0.07] bg-white/[0.055] text-slate-200',
@@ -78,10 +78,12 @@ const MessageBox: React.FC<MessageBoxProps> = ({
                 onClick={() => setImageModalOpen(true)}
                 src={data.image}
                 className="
-                  object-cover 
-                  cursor-pointer 
-                  hover:scale-105 
-                  transition 
+                  max-w-full
+                  h-auto
+                  object-cover
+                  cursor-pointer
+                  hover:scale-105
+                  transition
                   duration-300
                 "
               />

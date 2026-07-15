@@ -37,12 +37,12 @@ const MobileItem:React.FC<MobileItemProps> =({
         w-full 
         justify-center 
         p-4 
-        text-slate-400 
-        hover:text-indigo-400 
-        hover:bg-slate-900/40 
+        text-slate-400
+        hover:text-violet-200
+        hover:bg-white/[0.04]
         transition-all
-      `, 
-        active && "bg-slate-900 text-indigo-400"
+      `,
+        active && "bg-white/[0.06] text-violet-300"
       )}
     >
         <Icon className="h-6 w-6" />
