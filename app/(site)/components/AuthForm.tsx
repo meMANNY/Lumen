@@ -144,7 +144,7 @@ export default function AuthForm() {
                 <div>
                     {variant == "LOGIN" ? "New to Lumen?" : "Already have an account?"}
                 </div>
-                <button type="button" onClick={toggleVariant} className="text-violet-300 hover:text-violet-200 transition-colors underline underline-offset-4 cursor-pointer font-semibold">
+                <button type="button" onClick={toggleVariant} suppressHydrationWarning className="text-violet-300 hover:text-violet-200 transition-colors underline underline-offset-4 cursor-pointer font-semibold">
                     {variant == "LOGIN" ? "Create an account" : "Sign in"}
                 </button>
             </div>
