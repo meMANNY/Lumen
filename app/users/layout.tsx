@@ -10,7 +10,7 @@ export default async function UsersLayout({children}:{children: React.ReactNode}
 
   return (
     <Sidebar>
-  <div className=" h-full"> 
+  <div className="flex h-full w-full min-w-0"> 
     <UserList items={users}/>
     {children}
   </div>

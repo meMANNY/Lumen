@@ -5,11 +5,10 @@ import ConversationList from "./components/ConversationList";
 
 export default async function ConversationsLayout({children}: {children: React.ReactNode}){
 
-    const conversations = await getConversations();
-    const users = await getUsers();
+    const [conversations, users] = await Promise.all([getConversations(), getUsers()]);
   return (
     <Sidebar>
-    <div className=" h-full">
+    <div className="flex h-full w-full min-w-0">
         <ConversationList 
         users = {users}
         initialItems = {conversations}/>

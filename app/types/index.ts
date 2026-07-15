@@ -1,11 +1,15 @@
-import {  Conversation, Message, User } from "@prisma/client";
+import { Conversation, Message, User } from "@prisma/client";
 
 export type FullMessageType = Message & {
-  sender: User, 
-  seen: User[]
+  sender: User;
+  seen: User[];
+  replyTo?: (Message & { sender: User }) | null;
 };
 
-export type FullConversationType = Conversation & { 
-  users: User[]; 
-  messages: FullMessageType[]
+// Shape of Message.reactions: emoji -> user ids
+export type ReactionMap = Record<string, string[]>;
+
+export type FullConversationType = Conversation & {
+  users: User[];
+  messages: FullMessageType[];
 };

@@ -25,13 +25,30 @@ const MobileItem:React.FC<MobileItemProps> =({
 
   return (
     <Link 
-    onClick={onClick}
-    href={href}
-    className={clsx(` group flex gap-x-3 text-sm leading-6 font-semibold w-full justify-center p-4 text-gray-500 hover:text-black hover:bg-gray-100
-    `, active && "bg-gray-100")}>
-        <Icon className=" bg-gray-100 text-black"/>
+      onClick={handleClick}
+      href={href}
+      className={clsx(`
+        group 
+        flex 
+        gap-x-3 
+        text-sm 
+        leading-6 
+        font-semibold 
+        w-full 
+        justify-center 
+        p-4 
+        text-slate-400
+        hover:text-violet-200
+        hover:bg-white/[0.04]
+        transition-all
+      `,
+        active && "bg-white/[0.06] text-violet-300"
+      )}
+    >
+        <Icon className="h-6 w-6" />
     </Link>
   )
-    }
+}
+
 
 export default MobileItem;

@@ -39,24 +39,26 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="sm:flex sm:items-start">
-        <div 
+        <div
           className="
-            mx-auto 
-            flex 
-            h-12 
-            w-12 
-            flex-shrink-0 
-            items-center 
-            justify-center 
-            rounded-full 
-            bg-red-100 
-            sm:mx-0 
-            sm:h-10 
+            mx-auto
+            flex
+            h-12
+            w-12
+            flex-shrink-0
+            items-center
+            justify-center
+            rounded-2xl
+            border
+            border-rose-400/20
+            bg-rose-500/10
+            sm:mx-0
+            sm:h-10
             sm:w-10
           "
         >
-          <FiAlertTriangle 
-            className="h-6 w-6 text-red-600" 
+          <FiAlertTriangle
+            className="h-5 w-5 text-rose-300"
             aria-hidden="true"
           />
         </div>
@@ -69,20 +71,20 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             sm:text-left
           "
         >
-          <Dialog.Title 
-            as="h3" 
-            className="text-base font-semibold leading-6 text-gray-900"
+          <Dialog.Title
+            as="h3"
+            className="font-serif text-lg font-medium tracking-[-0.01em] text-white"
           >
             Delete conversation
           </Dialog.Title>
           <div className="mt-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm leading-6 text-slate-500">
               Are you sure you want to delete this conversation? This action cannot be undone.
             </p>
           </div>
         </div>
       </div>
-      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row-reverse">
         <Button
           disabled={isLoading}
           danger

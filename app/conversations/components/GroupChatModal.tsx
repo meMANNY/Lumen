@@ -37,6 +37,11 @@ const GroupChatModal: React.FC<GroupChatModalProps> = ({isOpen, onClose,users}) 
 
     const members = watch('members');
     const onSubmit: SubmitHandler<FieldValues> = (data)=>{
+        if (!data.members || data.members.length < 2) {
+            toast.error('Select at least 2 members for a group');
+            return;
+        }
+
         setIsLoading(true);
 
         axios.post('/api/conversations', {
@@ -47,28 +52,29 @@ const GroupChatModal: React.FC<GroupChatModalProps> = ({isOpen, onClose,users}) 
             router.refresh();
             onClose();
         })
-        .catch(()=> toast.error("Something went wrong"));
+        .catch((error)=> {
+            const response = error?.response?.data;
+            const message = typeof response === 'string' ? response : response?.message;
+            toast.error(message || 'Something went wrong');
+        })
+        .finally(()=> setIsLoading(false));
     }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-12">
-          <div className="border-b border-gray-900/10 pb-12">
-            <h2 
-              className="
-                text-base 
-                font-semibold 
-                leading-7 
-                text-gray-900
-              "
-              >
-                Create a group chat
-              </h2>
-            <p className="mt-1 text-sm leading-6 text-gray-600">
+        <div>
+          <div className="border-b border-white/[0.07] pb-8">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">
+              Lumen / new group
+            </p>
+            <h2 className="mt-2 font-serif text-[24px] font-medium tracking-[-0.02em] text-white">
+              Create a group chat
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
               Create a chat with more than 2 people.
             </p>
-            <div className="mt-10 flex flex-col gap-y-8">
+            <div className="mt-8 flex flex-col gap-y-6">
               <Input
                 disabled={isLoading}
                 label="Name" 
@@ -77,18 +83,23 @@ const GroupChatModal: React.FC<GroupChatModalProps> = ({isOpen, onClose,users}) 
                 required 
                 register={register}
               />
-              <Select
-                disabled={isLoading}
-                label="Members" 
-                options={users.map((user) => ({ 
-                  value: user.id, 
-                  label: user.name 
-                }))} 
-                onChange={(value) => setValue('members', value, { 
-                  shouldValidate: true 
-                })} 
-                value={members}
-              />
+              <div>
+                <Select
+                  disabled={isLoading}
+                  label="Members"
+                  options={users.map((user) => ({
+                    value: user.id,
+                    label: user.name
+                  }))}
+                  onChange={(value) => setValue('members', value, {
+                    shouldValidate: true
+                  })}
+                  value={members}
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  Pick at least 2 people — smaller chats live in the directory.
+                </p>
+              </div>
             </div>
           </div>
         </div>

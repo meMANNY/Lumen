@@ -13,17 +13,18 @@ const MobileFooter = () => {
   }
 
   return ( 
-    <div 
+    <div
       className="
-        fixed 
-        justify-between 
-        w-full 
-        bottom-0 
-        z-40 
-        flex 
-        items-center 
-        bg-white 
-        border-t-[1px] 
+        flex
+        w-full
+        shrink-0
+        items-center
+        justify-between
+        border-t
+        border-white/[0.07]
+        bg-[#0d0f19]/85
+        backdrop-blur-lg
+        pb-[env(safe-area-inset-bottom)]
         lg:hidden
       "
     >

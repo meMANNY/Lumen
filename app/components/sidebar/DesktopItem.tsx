@@ -23,30 +23,68 @@ const DesktopItem: React.FC<DesktopItemProps> = ({
   };
 
   return ( 
-    <li onClick={handleClick} key={label}>
+    <li onClick={handleClick} key={label} className="relative flex items-center justify-center">
+      {active && (
+        <span className="absolute -left-[21px] h-5 w-1 rounded-r-full bg-violet-300" />
+      )}
       <Link
         href={href}
         className={clsx(`
             group 
-            flex 
-            gap-x-3 
-            rounded-md 
-            p-3 
-            text-sm 
-            leading-6 
-            font-semibold 
-            text-gray-500 
-            hover:text-black 
-            hover:bg-gray-100
+            relative 
+            grid 
+            size-11 
+            place-items-center 
+            rounded-2xl 
+            transition-all
+            duration-200
+            hover:scale-105
+            active:scale-95
           `,
-            active && 'bg-gray-100 text-black'
+            active ? "bg-white/[0.11] text-white" : "text-slate-500 hover:bg-white/[0.06] hover:text-slate-200"
           )}
       >
-        <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+        <Icon className="size-[19px]" aria-hidden="true" />
         <span className="sr-only">{label}</span>
+        <span
+          role="tooltip"
+          className="
+            pointer-events-none
+            absolute
+            left-full
+            z-50
+            ml-4
+            whitespace-nowrap
+            rounded-lg
+            border
+            border-white/10
+            bg-[#191c2a]/95
+            px-2.5
+            py-1.5
+            font-mono
+            text-[10px]
+            uppercase
+            tracking-[0.14em]
+            text-slate-200
+            opacity-0
+            shadow-lg
+            shadow-black/40
+            backdrop-blur-xl
+            transition-all
+            duration-200
+            -translate-x-1
+            group-hover:translate-x-0
+            group-hover:opacity-100
+            group-focus-visible:translate-x-0
+            group-focus-visible:opacity-100
+          "
+        >
+          {label}
+        </span>
       </Link>
     </li>
    );
+
 }
  
 export default DesktopItem;

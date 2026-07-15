@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import getCurrentUser from "@/app/actions/getCurrentUser";
-// import { pusherServer } from '@/app/libs/pusher'
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
+import getConversationForUser from "@/app/libs/getConversationForUser";
+import { conversationChannel, userChannel } from "@/app/libs/channels";
 
 interface IParams {
   conversationId?: string;
@@ -11,76 +12,74 @@ interface IParams {
 
 export async function POST(
   request: Request,
-  { params }: { params: IParams }
+  { params }: { params: Promise<IParams> }
 ) {
   try {
     const currentUser = await getCurrentUser();
-    const {
-      conversationId
-    } = params;
+    const { conversationId } = await params;
 
-    
+
     if (!currentUser?.id || !currentUser?.email) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Find existing conversation
-    const conversation = await prisma.conversation.findUnique({
-      where: {
-        id: conversationId,
-      },
-      include: {
-        messages: {
-          include: {
-            seen: true
-          },
-        },
-        users: true,
-      },
-    });
-
-    if (!conversation) {
+    if (!conversationId) {
       return new NextResponse('Invalid ID', { status: 400 });
     }
 
+    const conversation = await getConversationForUser(conversationId, currentUser.id);
+
+    if (!conversation) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
     // Find last message
-    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    const lastMessage = await prisma.message.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      include: { seen: true },
+    });
 
     if (!lastMessage) {
       return NextResponse.json(conversation);
     }
 
-    // Update seen of last message
+    // Check if user has already seen the message
+    const hasAlreadySeen = lastMessage.seenIds.includes(currentUser.id);
+
+    if (hasAlreadySeen) {
+      return NextResponse.json(conversation);
+    }
+
+    // Update message with new seen user using array push
     const updatedMessage = await prisma.message.update({
       where: {
         id: lastMessage.id
       },
+      data: {
+        seenIds: {
+          push: currentUser.id
+        }
+      },
       include: {
         sender: true,
         seen: true,
-      },
-      data: {
-        seen: {
-          connect: {
-            id: currentUser.id
-          }
-        }
+        replyTo: {
+          include: {
+            sender: true,
+          },
+        },
       }
     });
 
     // Update all connections with new seen
-    await pusherServer.trigger(currentUser.email, 'conversation:update', {
-  id: conversationId,
+    await pusherServer.trigger(userChannel(currentUser.id), 'conversation:update', {
+      id: conversationId,
       messages: [updatedMessage]
-     });
+    });
 
-    // If user has already seen the message, no need to go further
-    if (lastMessage.seenIds.indexOf(currentUser.id) !== -1) {
-      return NextResponse.json(conversation);
-    }
-
-    // // Update last message seen
-     await pusherServer.trigger(conversationId!, 'message:update', updatedMessage);
+    // Update last message seen
+    await pusherServer.trigger(conversationChannel(conversationId), 'message:update', updatedMessage);
 
     return new NextResponse('Success');
   } catch (error) {

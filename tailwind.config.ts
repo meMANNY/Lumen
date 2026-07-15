@@ -7,7 +7,13 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Manrope', 'sans-serif'],
+        serif: ['Fraunces', 'serif'],
+        mono: ['DM Mono', 'monospace'],
+      }
+    },
   },
   plugins: [require("@tailwindcss/forms")({
     strategy: "class"

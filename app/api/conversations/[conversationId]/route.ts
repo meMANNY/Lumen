@@ -2,56 +2,45 @@ import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from '@/app/libs/prismadb';
 import { pusherServer } from "@/app/libs/pusher";
+import getConversationForUser from "@/app/libs/getConversationForUser";
+import { userChannel } from "@/app/libs/channels";
 
-interface IParams{
+interface IParams {
     conversationId?: string;
 }
 
 export async function DELETE(
     request: Request,
-    {params}: { params: IParams}
-){
+    { params }: { params: Promise<IParams> }
+) {
     try {
-        const {conversationId} = params;
+        const { conversationId } = await params;
         const currentUser = await getCurrentUser();
 
-        if(!currentUser?.id)
-        {
-            return new NextResponse('Unauthorized', {status: 401});
+        if (!currentUser?.id || !conversationId) {
+            return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        const existingConversation = await prisma.conversation.findUnique({
-            where:{
-                id: conversationId
-            },
-            include: {
-                users: true
-            }
-        });
-        if(!existingConversation)
-        {
-            return new NextResponse("Invalid ID" , {status: 400});
+        const existingConversation = await getConversationForUser(conversationId, currentUser.id);
+
+        if (!existingConversation) {
+            return new NextResponse("Forbidden", { status: 403 });
         }
 
-        const deletedConversation = await prisma.conversation.deleteMany({
+        const deletedConversation = await prisma.conversation.delete({
             where: {
-              id: conversationId,
-              userIds: {
-                hasSome: [currentUser.id]
-              },
+                id: conversationId,
             },
-          });
+        });
 
-        existingConversation.users.forEach((user)=>{
-            if(user.email){
-                pusherServer.trigger(user.email, 'conversation:remove', existingConversation);
-            }
+        existingConversation.users.forEach((user) => {
+            pusherServer.trigger(userChannel(user.id), 'conversation:remove', existingConversation);
         })
 
-          return NextResponse.json(deletedConversation)
+        return NextResponse.json(deletedConversation)
 
     } catch (error: any) {
         console.log(error, 'ERROR_CONVERSATION_DELETE');
-        return new NextResponse("Internal Error", {status: 500});
+        return new NextResponse("Internal Error", { status: 500 });
     }
 }

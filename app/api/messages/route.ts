@@ -1,84 +1,140 @@
 import getCurrentUser from "@/app/actions/getCurrentUser";
 import { NextResponse } from "next/server";
 import prisma from "@/app/libs/prismadb";
-import {pusherServer} from "@/app/libs/pusher";
+import { pusherServer } from "@/app/libs/pusher";
+import getConversationForUser from "@/app/libs/getConversationForUser";
+import { messageSchema, objectId } from "@/app/libs/validations";
+import { conversationChannel, userChannel } from "@/app/libs/channels";
+import { messageInclude } from "@/app/libs/messageInclude";
+import { buildLinkPreview } from "@/app/libs/linkPreview";
+import { MESSAGES_PAGE_SIZE } from "@/app/actions/getMessages";
+
+export async function GET(request: Request) {
+    try {
+        const currentUser = await getCurrentUser();
+
+        if (!currentUser?.id) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const conversationId = searchParams.get("conversationId");
+        const cursor = searchParams.get("cursor");
+
+        if (!conversationId || !objectId.safeParse(conversationId).success) {
+            return new NextResponse("Invalid conversationId", { status: 400 });
+        }
+
+        if (cursor && !objectId.safeParse(cursor).success) {
+            return new NextResponse("Invalid cursor", { status: 400 });
+        }
+
+        const conversation = await getConversationForUser(conversationId, currentUser.id);
+
+        if (!conversation) {
+            return new NextResponse("Forbidden", { status: 403 });
+        }
+
+        const items = await prisma.message.findMany({
+            where: { conversationId },
+            include: messageInclude,
+            orderBy: { createdAt: 'desc' },
+            take: MESSAGES_PAGE_SIZE + 1,
+            ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+        });
+
+        const hasMore = items.length > MESSAGES_PAGE_SIZE;
+        const page = hasMore ? items.slice(0, MESSAGES_PAGE_SIZE) : items;
+        const messages = page.reverse();
+
+        return NextResponse.json({
+            messages,
+            nextCursor: hasMore ? messages[0].id : null,
+        });
+    } catch (error: any) {
+        console.log(error, "ERROR_MESSAGES_GET");
+        return new NextResponse("Internal Error", { status: 500 });
+    }
+}
 
 
 export async function POST(request: Request) {
     try {
         const currentUser = await getCurrentUser();
-        const body = await request.json();
-        const { 
-            message,
-            image,
-            conversationId
-        } = body;
 
-        if(!currentUser?.id || !currentUser?.email){
-            return new NextResponse("unauthorised", {status:401});
+        if (!currentUser?.id || !currentUser?.email) {
+            return new NextResponse("unauthorised", { status: 401 });
         }
-        const newMessage  =await prisma.message.create({
+
+        const body = await request.json();
+        const parsed = messageSchema.safeParse(body);
+
+        if (!parsed.success) {
+            return NextResponse.json(parsed.error.flatten(), { status: 400 });
+        }
+
+        const { message, image, audio, fileUrl, fileName, fileType, conversationId, replyToId } = parsed.data;
+
+        const conversation = await getConversationForUser(conversationId, currentUser.id);
+
+        if (!conversation) {
+            return new NextResponse("Forbidden", { status: 403 });
+        }
+
+        // A quoted message must belong to the same conversation
+        if (replyToId) {
+            const quoted = await prisma.message.findUnique({ where: { id: replyToId } });
+            if (!quoted || quoted.conversationId !== conversationId) {
+                return NextResponse.json({ message: 'Invalid reply target' }, { status: 400 });
+            }
+        }
+
+        // Best-effort OpenGraph card for the first URL in the text
+        const linkPreview = await buildLinkPreview(message);
+
+        // Create message with sender already marked as seen
+        const newMessage = await prisma.message.create({
             data: {
                 body: message,
                 image: image,
-                conversation: {
-                    connect:{
-                        id: conversationId
-                    }
-                },
-                sender: {
-                    connect:{
-                        id: currentUser.id
-                    }
-                },
-                seen: {
-                    connect:{
-                        id: currentUser.id
-                    }
-                }
+                audio: audio,
+                fileUrl: fileUrl,
+                fileName: fileName,
+                fileType: fileType,
+                linkPreview: linkPreview ?? undefined,
+                conversationId: conversationId,
+                senderId: currentUser.id,
+                seenIds: [currentUser.id],
+                replyToId: replyToId ?? null
             },
-            include:{
-                seen: true,
-                sender: true
-            }
+            include: messageInclude
         });
-        const updatedConversation = await prisma.conversation.update({
-                where:{
-                    id: conversationId
-                },
-                data: {
-                    lastMessageAt: new Date(),
-                    messages: {
-                        connect:{
-                            id: newMessage.id
-                        }
-                    }
-                },
-                include: {
-                    users: true,
-                    messages: {
-                        include:{
-                            seen: true
-                        }
-                    }
+
+        await prisma.conversation.update({
+            where: {
+                id: conversationId
+            },
+            data: {
+                lastMessageAt: new Date(),
+                messagesIds: {
+                    push: newMessage.id
                 }
+            }
+        })
+        await pusherServer.trigger(conversationChannel(conversationId), 'messages:new', newMessage);
 
+        conversation.users.forEach((user) => {
+            pusherServer.trigger(userChannel(user.id), 'conversation:update', {
+                id: conversationId,
+                messages: [newMessage]
             })
-                await pusherServer.trigger(conversationId, 'messages:new', newMessage);
-                const lastMessage = updatedConversation.messages[updatedConversation.messages.length -1];
+        });
 
-                updatedConversation.users.map((user)=>{
-                    pusherServer.trigger(user.email!, 'conversation:update', {
-                        id: conversationId,
-                        messages: [lastMessage]
-                    })
-                });
-
-                return NextResponse.json(newMessage);
+        return NextResponse.json(newMessage);
 
     } catch (error: any) {
         console.log(error, "ERROR_MESSAGES");
-        return new NextResponse("Internal Error", {status: 500});
-        
+        return new NextResponse("Internal Error", { status: 500 });
+
     }
 }

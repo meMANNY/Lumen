@@ -3,59 +3,86 @@ import { NextResponse } from "next/server";
 
 import prisma from "@/app/libs/prismadb";
 import { pusherServer } from "@/app/libs/pusher";
+import { userChannel } from "@/app/libs/channels";
+import { groupConversationSchema, singleConversationSchema } from "@/app/libs/validations";
 
 export async function POST(
   request: Request,
 ) {
   try {
     const currentUser = await getCurrentUser();
-    const body = await request.json();
-    const {
-      userId,
-      isGroup,
-      members,
-      name
-    } = body;
 
     if (!currentUser?.id || !currentUser?.email) {
-      return new NextResponse('Unauthorized', { status: 400 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    if (isGroup && (!members || members.length < 2 || !name)) {
-      return new NextResponse('Invalid data', { status: 400 });
-    }
+    const body = await request.json();
 
-    if (isGroup) {
+    if (body.isGroup) {
+      const parsed = groupConversationSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            message: parsed.error.issues[0]?.message ?? 'Invalid group details',
+            errors: parsed.error.flatten()
+          },
+          { status: 400 }
+        );
+      }
+
+      const { name, members } = parsed.data;
+      const memberIds = Array.from(new Set(members.map((member) => member.value))).filter(
+        (id) => id !== currentUser.id
+      );
+
+      const foundCount = await prisma.user.count({
+        where: { id: { in: memberIds } }
+      });
+
+      if (foundCount !== memberIds.length) {
+        return new NextResponse('Invalid members', { status: 400 });
+      }
+
       const newConversation = await prisma.conversation.create({
         data: {
           name,
-          isGroup,
-          users: {
-            connect: [
-              ...members.map((member: { value: string }) => ({  
-                id: member.value 
-              })),
-              {
-                id: currentUser.id
-              }
-            ]
-          }
+          isGroup: true,
+          userIds: [...memberIds, currentUser.id],
+          adminIds: [currentUser.id]
         },
         include: {
           users: true,
         }
       });
 
-       // Update all connections with new conversation
+      // Update all connections with new conversation
       newConversation.users.forEach((user) => {
-        if (user.email) {
-          pusherServer.trigger(user.email, 'conversation:new', newConversation);
-        }
+        pusherServer.trigger(userChannel(user.id), 'conversation:new', newConversation);
       });
 
       return NextResponse.json(newConversation);
     }
 
+    const parsed = singleConversationSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(parsed.error.flatten(), { status: 400 });
+    }
+
+    const { userId } = parsed.data;
+
+    if (userId === currentUser.id) {
+      return new NextResponse('Invalid data', { status: 400 });
+    }
+
+    const otherUser = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!otherUser) {
+      return new NextResponse('Invalid data', { status: 400 });
+    }
+
+    // Check if a 1:1 conversation already exists between these two users
     const existingConversations = await prisma.conversation.findMany({
       where: {
         OR: [
@@ -81,27 +108,16 @@ export async function POST(
 
     const newConversation = await prisma.conversation.create({
       data: {
-        users: {
-          connect: [
-            {
-              id: currentUser.id
-            },
-            {
-              id: userId
-            }
-          ]
-        }
+        userIds: [currentUser.id, userId]
       },
       include: {
-        users: true
+        users: true,
       }
     });
 
     // Update all connections with new conversation
-    newConversation.users.map((user) => {
-      if (user.email) {
-        pusherServer.trigger(user.email, 'conversation:new', newConversation);
-      }
+    newConversation.users.forEach((user) => {
+      pusherServer.trigger(userChannel(user.id), 'conversation:new', newConversation);
     });
 
     return NextResponse.json(newConversation)
