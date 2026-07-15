@@ -33,6 +33,18 @@ body,
   background: rgba(99, 102, 241, 0.6); /* indigo-500/60 */
 }
 
+/* Auth card entrance */
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Custom glow animation */
 @keyframes pulseGlow {
   0%, 100% {

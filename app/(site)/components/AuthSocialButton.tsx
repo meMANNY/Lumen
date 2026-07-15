@@ -2,40 +2,48 @@ import { IconType } from "react-icons"
 
 interface AuthSocialButtonProps{
   icon: IconType,
+  label: string,
   onClick: ()=>void;
 }
 
-const AuthSocialButton: React.FC<AuthSocialButtonProps> = ({ 
+const AuthSocialButton: React.FC<AuthSocialButtonProps> = ({
   icon: Icon,
+  label,
   onClick
 }) => {
-  return ( 
+  return (
     <button
       type="button"
       onClick={onClick}
+      suppressHydrationWarning
       className="
         inline-flex
         w-full
+        items-center
         justify-center
-        rounded-lg
-        bg-slate-900/50
+        gap-2.5
+        rounded-xl
+        border
+        border-white/[0.08]
+        bg-white/[0.04]
         px-4
         py-2.5
-        text-slate-300
-        shadow-sm
-        ring-1
-        ring-inset
-        ring-slate-800/80
-        hover:bg-slate-800/80
-        hover:text-slate-100
-        hover:scale-[1.03]
-        active:scale-[0.97]
+        text-sm
+        font-medium
+        text-slate-200
         transition-all
         duration-200
-        focus:outline-offset-0
+        hover:bg-white/[0.09]
+        hover:text-white
+        active:scale-[0.98]
+        focus-visible:outline
+        focus-visible:outline-2
+        focus-visible:outline-offset-2
+        focus-visible:outline-violet-400
       "
     >
-      <Icon size={20} />
+      <Icon size={18} />
+      {label}
     </button>
    );
 }

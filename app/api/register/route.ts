@@ -11,7 +11,22 @@ export async function POST(request: Request) {
         const parsed = registerSchema.safeParse(body);
 
         if (!parsed.success) {
-            return NextResponse.json(parsed.error.flatten(), { status: 400 });
+            const requiredFields = ['name', 'email', 'password'] as const;
+            const missing = requiredFields.filter(
+                (field) => typeof body?.[field] !== 'string' || body[field].trim() === ''
+            );
+
+            let message: string;
+            if (missing.length === requiredFields.length) {
+                message = 'Enter your details';
+            } else if (missing.length > 0) {
+                const list = missing.join(' and ');
+                message = `Enter your details — ${list} ${missing.length === 1 ? 'is' : 'are'} missing`;
+            } else {
+                message = parsed.error.issues[0]?.message ?? 'Invalid details';
+            }
+
+            return NextResponse.json({ message, errors: parsed.error.flatten() }, { status: 400 });
         }
 
         const { email, name, password } = parsed.data;

@@ -3,9 +3,12 @@ import { z } from "zod";
 export const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(1).max(50),
-  email: z.email(),
-  password: z.string().min(8).max(128),
+  name: z.string().trim().min(1, "Name is required").max(50, "Name is too long"),
+  email: z.email("Enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password is too long"),
 });
 
 export const messageSchema = z
