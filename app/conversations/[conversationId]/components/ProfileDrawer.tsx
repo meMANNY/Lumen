@@ -6,9 +6,15 @@ import useOtherUser from "@/app/hooks/useOtherUser";
 import { Dialog, Transition } from "@headlessui/react";
 import { Conversation, User } from "@prisma/client";
 import { format } from "date-fns";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { IoClose, IoTrash } from 'react-icons/io5';
+import { HiOutlineUserPlus, HiOutlineUserMinus } from 'react-icons/hi2';
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import toast from "react-hot-toast";
 import AvatarGroup from "@/app/components/AvatarGroup";
+import Select from "@/app/components/input/Select";
 import useActiveList from "@/app/hooks/useActiveList";
 
 
@@ -29,6 +35,71 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     const [ConfirmOpen, setConfirmOpen] = useState(false);
     const { members } = useActiveList();
     const isActive = members.indexOf(otherUser?.id!) !== -1;
+
+    const router = useRouter();
+    const session = useSession();
+    const currentUserId = session.data?.user?.id;
+
+    const adminIds = data.adminIds ?? [];
+    const isAdmin = !!data.isGroup && !!currentUserId && adminIds.includes(currentUserId);
+
+    const [addOpen, setAddOpen] = useState(false);
+    const [allUsers, setAllUsers] = useState<{ id: string; name: string | null; email: string | null }[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<Record<string, any>[]>([]);
+    const [isMutating, setIsMutating] = useState(false);
+
+    // Load the directory when the add-members panel opens
+    useEffect(() => {
+        if (!addOpen) {
+            return;
+        }
+        axios.get('/api/users')
+            .then((response) => setAllUsers(response.data))
+            .catch(() => toast.error("Couldn't load users"));
+    }, [addOpen]);
+
+    const memberOptions = useMemo(() =>
+        allUsers
+            .filter((user) => !data.users.some((member) => member.id === user.id))
+            .map((user) => ({ value: user.id, label: user.name || user.email || 'Unknown' })),
+        [allUsers, data.users]
+    );
+
+    const handleAddMembers = () => {
+        if (selectedMembers.length === 0 || isMutating) {
+            return;
+        }
+        setIsMutating(true);
+        axios.post(`/api/conversations/${data.id}/members`, {
+            action: 'add',
+            members: selectedMembers
+        })
+            .then(() => {
+                toast.success('Members added');
+                setAddOpen(false);
+                setSelectedMembers([]);
+                router.refresh();
+            })
+            .catch((error) => toast.error(error?.response?.data?.message || 'Something went wrong'))
+            .finally(() => setIsMutating(false));
+    };
+
+    const handleRemoveMember = (userId: string) => {
+        if (isMutating) {
+            return;
+        }
+        setIsMutating(true);
+        axios.post(`/api/conversations/${data.id}/members`, {
+            action: 'remove',
+            userId
+        })
+            .then(() => {
+                toast.success('Member removed');
+                router.refresh();
+            })
+            .catch((error) => toast.error(error?.response?.data?.message || 'Something went wrong'))
+            .finally(() => setIsMutating(false));
+    };
 
     const joinedDate = useMemo(() => {
         return format(new Date(otherUser.createdAt), 'PP');
@@ -115,9 +186,51 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                 <div className="mt-9 w-full space-y-7">
                                                     {data.isGroup ? (
                                                         <div>
-                                                            <p className="font-mono text-[10px] uppercase tracking-[0.17em] text-slate-500">
-                                                                Members
-                                                            </p>
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="font-mono text-[10px] uppercase tracking-[0.17em] text-slate-500">
+                                                                    Members
+                                                                </p>
+                                                                {isAdmin && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setAddOpen((open) => !open)}
+                                                                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.13em] text-violet-200 transition hover:bg-white/[0.06]"
+                                                                    >
+                                                                        <HiOutlineUserPlus className="size-3.5" />
+                                                                        Add
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            {isAdmin && addOpen && (
+                                                                <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+                                                                    <Select
+                                                                        disabled={isMutating}
+                                                                        label="Add members"
+                                                                        options={memberOptions}
+                                                                        onChange={(value) => setSelectedMembers(value as Record<string, any>[])}
+                                                                        value={selectedMembers}
+                                                                    />
+                                                                    <div className="mt-3 flex justify-end gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => { setAddOpen(false); setSelectedMembers([]); }}
+                                                                            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:text-white"
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={handleAddMembers}
+                                                                            disabled={selectedMembers.length === 0 || isMutating}
+                                                                            className="rounded-lg bg-violet-400 px-3.5 py-1.5 text-xs font-semibold text-[#171222] transition hover:bg-violet-300 disabled:opacity-40 disabled:hover:bg-violet-400"
+                                                                        >
+                                                                            Add to group
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             <div className="mt-4 space-y-2">
                                                                 {data.users.map((user) => (
                                                                     <div
@@ -125,10 +238,28 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                                         className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.035] px-3.5 py-2.5"
                                                                     >
                                                                         <Avatar user={user} size="sm" />
-                                                                        <div className="min-w-0">
-                                                                            <p className="truncate text-sm font-semibold text-slate-100">{user.name}</p>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <p className="truncate text-sm font-semibold text-slate-100">{user.name}</p>
+                                                                                {adminIds.includes(user.id) && (
+                                                                                    <span className="rounded border border-violet-300/30 bg-violet-400/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.13em] text-violet-200">
+                                                                                        Admin
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
                                                                             <p className="truncate text-xs text-slate-500">{user.email}</p>
                                                                         </div>
+                                                                        {isAdmin && !adminIds.includes(user.id) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleRemoveMember(user.id)}
+                                                                                disabled={isMutating}
+                                                                                className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-40"
+                                                                                aria-label={`Remove ${user.name} from group`}
+                                                                            >
+                                                                                <HiOutlineUserMinus className="size-4" />
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                 ))}
                                                             </div>

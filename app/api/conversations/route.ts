@@ -48,7 +48,8 @@ export async function POST(
         data: {
           name,
           isGroup: true,
-          userIds: [...memberIds, currentUser.id]
+          userIds: [...memberIds, currentUser.id],
+          adminIds: [currentUser.id]
         },
         include: {
           users: true,

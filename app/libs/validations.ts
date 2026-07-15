@@ -35,3 +35,14 @@ export const groupConversationSchema = z.object({
 export const singleConversationSchema = z.object({
   userId: objectId,
 });
+
+export const memberActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('add'),
+    members: z.array(z.object({ value: objectId })).min(1, "Select at least 1 member"),
+  }),
+  z.object({
+    action: z.literal('remove'),
+    userId: objectId,
+  }),
+]);

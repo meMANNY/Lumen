@@ -57,6 +57,8 @@ model Conversation {
   isGroup Boolean?
   // Users who archived this conversation (per-user archive, WhatsApp-style)
   archivedByIds String[] @db.ObjectId @default([])
+  // Group admins (the creator, initially) — may add/remove members
+  adminIds String[] @db.ObjectId @default([])
   
   messagesIds String[] @db.ObjectId
   messages Message[]
