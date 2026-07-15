@@ -1,12 +1,15 @@
 'use client';
 
 import { User } from "@prisma/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Menu, Transition } from "@headlessui/react";
 import { MdOutlineGroupAdd } from 'react-icons/md';
 import { HiSearch } from 'react-icons/hi';
-import { HiSparkles } from 'react-icons/hi2';
+import { HiArchiveBox, HiEllipsisHorizontal, HiSparkles } from 'react-icons/hi2';
+import axios from "axios";
+import toast from "react-hot-toast";
 import clsx from "clsx";
 import { find } from 'lodash';
 
@@ -23,18 +26,24 @@ interface ConversationListProps {
   title?: string;
 }
 
-const ConversationList: React.FC<ConversationListProps> = ({ 
-  initialItems, 
+const ConversationList: React.FC<ConversationListProps> = ({
+  initialItems,
   users
 }) => {
   const [items, setItems] = useState(initialItems);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isArchiving, setIsArchiving] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const session = useSession();
+  const searchParams = useSearchParams();
+
+  const archivedView = searchParams.get('view') === 'archived';
 
   const { conversationId, isOpen } = useConversation();
 
@@ -43,6 +52,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
   }, [session.data?.user?.id])
 
   const currentUserEmail = session.data?.user?.email;
+  const currentUserId = session.data?.user?.id;
+
+  // Leaving/entering the archived view resets any pending selection
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedIds([]);
+  }, [archivedView]);
 
   // Ctrl+K / Cmd+K focuses the search field
   useEffect(() => {
@@ -55,6 +71,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  const isArchived = useCallback((conversation: FullConversationType) => {
+    if (!currentUserId) {
+      return false;
+    }
+    return (conversation.archivedByIds || []).includes(currentUserId);
+  }, [currentUserId]);
 
   const conversationName = useCallback((conversation: FullConversationType) => {
     if (conversation.name) {
@@ -73,11 +96,17 @@ const ConversationList: React.FC<ConversationListProps> = ({
     return !(lastMessage.seen || []).some((user) => user.email === currentUserEmail);
   }, [currentUserEmail]);
 
-  const unreadCount = useMemo(() => items.filter(isUnread).length, [items, isUnread]);
+  // Only conversations belonging to the current view (inbox vs archived)
+  const visibleItems = useMemo(
+    () => items.filter((item) => isArchived(item) === archivedView),
+    [items, isArchived, archivedView]
+  );
+
+  const unreadCount = useMemo(() => visibleItems.filter(isUnread).length, [visibleItems, isUnread]);
 
   const filteredItems = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
-    return items.filter((item) => {
+    return visibleItems.filter((item) => {
       if (filter === 'unread' && !isUnread(item)) {
         return false;
       }
@@ -86,7 +115,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       }
       return true;
     });
-  }, [items, filter, query, isUnread, conversationName]);
+  }, [visibleItems, filter, query, isUnread, conversationName]);
 
   const { todayItems, earlierItems } = useMemo(() => {
     const today: FullConversationType[] = [];
@@ -106,12 +135,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
 
     const channel = pusherClient.subscribe(userChannel(pusherKey));
 
-    const updateHandler = (conversation: FullConversationType) => {
+    const updateHandler = (conversation: Partial<FullConversationType> & { id: string }) => {
       setItems((current) => current.map((currentConversation) => {
         if (currentConversation.id === conversation.id) {
           return {
             ...currentConversation,
-            messages: conversation.messages
+            ...(conversation.messages ? { messages: conversation.messages } : {}),
+            ...(conversation.archivedByIds ? { archivedByIds: conversation.archivedByIds } : {}),
           };
         }
 
@@ -147,21 +177,61 @@ const ConversationList: React.FC<ConversationListProps> = ({
     }
   }, [pusherKey, router]);
 
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id]
+    );
+  }, []);
+
+  const setArchived = useCallback(async (ids: string[], archived: boolean) => {
+    if (!ids.length || isArchiving) {
+      return;
+    }
+    setIsArchiving(true);
+    try {
+      await Promise.all(
+        ids.map((id) => axios.post(`/api/conversations/${id}/archive`, { archived }))
+      );
+      if (currentUserId) {
+        setItems((current) => current.map((item) => {
+          if (!ids.includes(item.id)) {
+            return item;
+          }
+          const archivedByIds = archived
+            ? Array.from(new Set([...(item.archivedByIds || []), currentUserId]))
+            : (item.archivedByIds || []).filter((userId) => userId !== currentUserId);
+          return { ...item, archivedByIds };
+        }));
+      }
+      toast.success(
+        archived
+          ? `Archived ${ids.length} chat${ids.length === 1 ? '' : 's'}`
+          : `Unarchived ${ids.length} chat${ids.length === 1 ? '' : 's'}`
+      );
+      setSelectMode(false);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Couldn't update the archive");
+    } finally {
+      setIsArchiving(false);
+    }
+  }, [currentUserId, isArchiving]);
+
   return (
     <>
-      <GroupChatModal 
-        users={users} 
-        isOpen={isModalOpen} 
+      <GroupChatModal
+        users={users}
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
       <aside className={clsx(`
-        w-full 
-        md:w-[335px] 
-        shrink-0 
-        border-r 
-        border-white/[0.07] 
-        bg-[#12141f]/72 
-        flex 
+        w-full
+        md:w-[335px]
+        shrink-0
+        border-r
+        border-white/[0.07]
+        bg-[#12141f]/72
+        flex
         flex-col
         transition-all
         duration-300
@@ -169,29 +239,76 @@ const ConversationList: React.FC<ConversationListProps> = ({
         <div className="px-6 pb-4 pt-7 flex flex-col shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">Lumen / inbox</p>
-              <h1 className="mt-1.5 font-serif text-[27px] font-medium tracking-[-0.025em] text-white">Conversations</h1>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">
+                {archivedView ? 'Lumen / archive' : 'Lumen / inbox'}
+              </p>
+              <h1 className="mt-1.5 font-serif text-[27px] font-medium tracking-[-0.025em] text-white">
+                {archivedView ? 'Archived' : 'Conversations'}
+              </h1>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              suppressHydrationWarning
-              className="
-                grid 
-                size-10 
-                place-items-center 
-                rounded-xl 
-                bg-white/[0.08] 
-                text-slate-200 
-                transition-all
-                duration-200
-                hover:bg-violet-400 
-                hover:text-[#171222]
-                active:scale-95
-              "
-              aria-label="New conversation"
-            >
-              <MdOutlineGroupAdd size={20} />
-            </button>
+            <Menu as="div" className="relative">
+              <Menu.Button
+                suppressHydrationWarning
+                aria-label="Conversation options"
+                className="
+                  grid
+                  size-10
+                  place-items-center
+                  rounded-xl
+                  bg-white/[0.08]
+                  text-slate-200
+                  transition-all
+                  duration-200
+                  hover:bg-white/[0.14]
+                  hover:text-white
+                  active:scale-95
+                "
+              >
+                <HiEllipsisHorizontal size={21} />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-150"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-100"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-0 z-30 mt-2 w-64 origin-top-right rounded-2xl border border-white/10 bg-[#191c2a]/95 p-1.5 shadow-xl shadow-black/50 backdrop-blur-xl focus:outline-none">
+                  {!archivedView && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => setIsModalOpen(true)}
+                          className={clsx(
+                            "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-200 transition",
+                            active && "bg-white/[0.06] text-white"
+                          )}
+                        >
+                          <MdOutlineGroupAdd size={17} className="text-slate-400" />
+                          New group chat
+                        </button>
+                      )}
+                    </Menu.Item>
+                  )}
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => { setSelectMode(true); setSelectedIds([]); }}
+                        className={clsx(
+                          "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-200 transition",
+                          active && "bg-white/[0.06] text-white"
+                        )}
+                      >
+                        <HiArchiveBox size={16} className="text-slate-400" />
+                        {archivedView ? 'Select chats to unarchive' : 'Select chats to archive'}
+                      </button>
+                    )}
+                  </Menu.Item>
+                </Menu.Items>
+              </Transition>
+            </Menu>
           </div>
           <label className="mt-6 flex h-11 items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3.5 text-slate-500 focus-within:border-violet-300/40 focus-within:ring-2 focus-within:ring-violet-400/10">
             <HiSearch className="size-4" />
@@ -233,6 +350,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
             Unread
             {unreadCount > 0 && <span className="ml-1 text-violet-300">{unreadCount}</span>}
           </button>
+          {selectMode && (
+            <span className="ml-auto pb-3 font-mono text-[10px] uppercase tracking-[0.13em] text-violet-300">
+              {selectedIds.length} selected
+            </span>
+          )}
         </div>
 
         <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -244,6 +366,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
               key={item.id}
               data={item}
               selected={conversationId === item.id}
+              selectMode={selectMode}
+              isChecked={selectedIds.includes(item.id)}
+              onToggleSelect={() => toggleSelect(item.id)}
+              onSwipeArchive={() => setArchived([item.id], !archivedView)}
+              swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
             />
           ))}
           {earlierItems.length > 0 && (
@@ -254,33 +381,79 @@ const ConversationList: React.FC<ConversationListProps> = ({
               key={item.id}
               data={item}
               selected={conversationId === item.id}
+              selectMode={selectMode}
+              isChecked={selectedIds.includes(item.id)}
+              onToggleSelect={() => toggleSelect(item.id)}
+              onSwipeArchive={() => setArchived([item.id], !archivedView)}
+              swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
             />
           ))}
           {filteredItems.length === 0 && (
             <p className="px-3 py-6 text-center text-xs text-slate-500">
-              {query.trim() ? 'No conversations match your search.' : filter === 'unread' ? "You're all caught up." : 'No conversations yet — find someone in the directory.'}
+              {query.trim()
+                ? 'No conversations match your search.'
+                : archivedView
+                  ? 'No archived chats — swipe a conversation or use the menu to archive one.'
+                  : filter === 'unread'
+                    ? "You're all caught up."
+                    : 'No conversations yet — find someone in the directory.'}
             </p>
           )}
         </div>
 
-        <button
-          onClick={() => setFilter(unreadCount > 0 ? 'unread' : 'all')}
-          suppressHydrationWarning
-          className="mx-4 mb-5 flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3 text-left transition hover:bg-white/[0.07]"
-        >
-          <HiSparkles className="size-4 text-amber-300 shrink-0" />
-          <span>
-            <span className="block text-xs font-semibold text-slate-200">
-              {unreadCount > 0
-                ? `${unreadCount} conversation${unreadCount === 1 ? '' : 's'} waiting for you`
-                : "You're all caught up"}
+        {selectMode ? (
+          <div className="mx-4 mb-5 flex items-center gap-3">
+            <button
+              onClick={() => { setSelectMode(false); setSelectedIds([]); }}
+              className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.08]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => setArchived(selectedIds, !archivedView)}
+              disabled={selectedIds.length === 0 || isArchiving}
+              className="
+                flex-1
+                rounded-2xl
+                bg-violet-400
+                px-4
+                py-3
+                text-sm
+                font-semibold
+                text-[#171222]
+                shadow-lg
+                shadow-violet-950/40
+                transition
+                hover:bg-violet-300
+                disabled:cursor-default
+                disabled:opacity-40
+                disabled:hover:bg-violet-400
+              "
+            >
+              {archivedView ? 'Unarchive' : 'Archive'}
+              {selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            </button>
+          </div>
+        ) : !archivedView && (
+          <button
+            onClick={() => setFilter(unreadCount > 0 ? 'unread' : 'all')}
+            suppressHydrationWarning
+            className="mx-4 mb-5 flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3 text-left transition hover:bg-white/[0.07]"
+          >
+            <HiSparkles className="size-4 text-amber-300 shrink-0" />
+            <span>
+              <span className="block text-xs font-semibold text-slate-200">
+                {unreadCount > 0
+                  ? `${unreadCount} conversation${unreadCount === 1 ? '' : 's'} waiting for you`
+                  : "You're all caught up"}
+              </span>
+              <span className="block pt-0.5 text-[11px] text-slate-500">A calm review of your day</span>
             </span>
-            <span className="block pt-0.5 text-[11px] text-slate-500">A calm review of your day</span>
-          </span>
-        </button>
+          </button>
+        )}
       </aside>
     </>
    );
 }
- 
+
 export default ConversationList;

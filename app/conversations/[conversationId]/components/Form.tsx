@@ -3,6 +3,7 @@
 import useConversation from "@/app/hooks/useConversation";
 import axios from "axios";
 import { useRef } from "react";
+import { Popover } from "@headlessui/react";
 import {  FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { HiPhoto } from "react-icons/hi2";
 import { HiPaperClip, HiEmojiHappy } from "react-icons/hi";
@@ -11,11 +12,30 @@ import { HiPaperAirplane } from "react-icons/hi2";
 import { CldUploadButton } from "next-cloudinary";
 import toast from "react-hot-toast";
 
+const EMOJI_SECTIONS: { label: string; emojis: string[] }[] = [
+    {
+        label: 'Smileys',
+        emojis: ['😀','😄','😁','😂','🤣','😊','😍','🥰','😘','😜','🤪','😎','🥳','😇','🙂','🙃','😉','🤗','🤔','🫡','😴','🥺','😢','😭','😤','😅','😬','🙄','😮','🤯'],
+    },
+    {
+        label: 'Gestures',
+        emojis: ['👍','👎','👌','✌️','🤞','🤟','🤙','👏','🙌','🙏','💪','🫶','🤝','👋','✋','🖐️','☝️','👉','👈','🫰'],
+    },
+    {
+        label: 'Hearts',
+        emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕','💞','💓','💗','💖','💘','💝'],
+    },
+    {
+        label: 'Fun',
+        emojis: ['🔥','✨','⭐','🎉','🎊','🎁','🏆','⚡','🌟','🌈','☀️','🌙','🍕','🍔','☕','🍺','⚽','🎮','🎧','🚀'],
+    },
+];
+
 const Form = () => {
     const {conversationId} = useConversation();
     const formRef = useRef<HTMLFormElement>(null);
 
-    const {register, handleSubmit, setValue,
+    const {register, handleSubmit, setValue, getValues,
     formState:{
         errors,
     }} = useForm<FieldValues>({
@@ -23,6 +43,11 @@ const Form = () => {
             message: ''
         }
     })
+
+    const insertEmoji = (emoji: string) => {
+        setValue('message', (getValues('message') || '') + emoji, { shouldValidate: true });
+        document.getElementById('message')?.focus();
+    };
 
     const onSubmit: SubmitHandler<FieldValues> = async (data) => {
         setValue('message', '', {shouldValidate: true});
@@ -75,9 +100,55 @@ const Form = () => {
                 placeholder="Write a message..."
                 onEnter={() => formRef.current?.requestSubmit()}
             />
-            <button suppressHydrationWarning className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-white/[0.07] hover:text-amber-200" type="button" aria-label="Add emoji">
-              <HiEmojiHappy size={18} />
-            </button>
+            <Popover className="relative">
+              <Popover.Button
+                suppressHydrationWarning
+                className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-500 outline-none transition hover:bg-white/[0.07] hover:text-amber-200 focus-visible:ring-2 focus-visible:ring-violet-400/50"
+                aria-label="Add emoji"
+              >
+                <HiEmojiHappy size={18} />
+              </Popover.Button>
+              <Popover.Panel
+                className="
+                  absolute
+                  bottom-12
+                  right-0
+                  z-30
+                  w-[286px]
+                  max-h-72
+                  overflow-y-auto
+                  rounded-2xl
+                  border
+                  border-white/10
+                  bg-[#191c2a]/95
+                  p-3
+                  shadow-xl
+                  shadow-black/50
+                  backdrop-blur-xl
+                "
+              >
+                {EMOJI_SECTIONS.map((section) => (
+                  <div key={section.label} className="mb-2 last:mb-0">
+                    <p className="px-1 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-slate-500">
+                      {section.label}
+                    </p>
+                    <div className="grid grid-cols-8 gap-0.5">
+                      {section.emojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => insertEmoji(emoji)}
+                          className="grid size-8 place-items-center rounded-lg text-lg transition hover:bg-white/[0.09] active:scale-90"
+                          aria-label={`Insert ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </Popover.Panel>
+            </Popover>
             <button
               type="submit"
               suppressHydrationWarning
