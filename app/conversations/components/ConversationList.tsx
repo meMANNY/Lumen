@@ -87,6 +87,26 @@ const ConversationList: React.FC<ConversationListProps> = ({
     return (conversation.pinnedByIds || []).includes(currentUserId);
   }, [currentUserId]);
 
+  const isMuted = useCallback((conversation: FullConversationType) => {
+    if (!currentUserId) {
+      return false;
+    }
+    return (conversation.mutedByIds || []).includes(currentUserId);
+  }, [currentUserId]);
+
+  // Mirror for pusher handlers that need current items without re-subscribing
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  // Ask once for browser notification permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
   const conversationName = useCallback((conversation: FullConversationType) => {
     if (conversation.name) {
       return conversation.name;
@@ -110,7 +130,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
     [items, isArchived, archivedView]
   );
 
-  const unreadCount = useMemo(() => visibleItems.filter(isUnread).length, [visibleItems, isUnread]);
+  const unreadCount = useMemo(
+    () => visibleItems.filter((item) => isUnread(item) && !isMuted(item)).length,
+    [visibleItems, isUnread, isMuted]
+  );
 
   const filteredItems = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -149,6 +172,31 @@ const ConversationList: React.FC<ConversationListProps> = ({
     const channel = pusherClient.subscribe(userChannel(pusherKey));
 
     const updateHandler = (conversation: Partial<FullConversationType> & { id: string }) => {
+      // Browser notification for messages arriving while the tab is hidden
+      const incoming = conversation.messages?.[conversation.messages.length - 1];
+      if (
+        incoming &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        document.hidden &&
+        incoming.sender?.email !== currentUserEmail
+      ) {
+        const item = itemsRef.current.find((candidate) => candidate.id === conversation.id);
+        const muted = item ? (item.mutedByIds || []).includes(currentUserId || '') : false;
+        if (!muted) {
+          const title = item ? (item.name || incoming.sender?.name || 'New message') : (incoming.sender?.name || 'New message');
+          const notification = new Notification(title, {
+            body: incoming.body || (incoming.image ? '📷 Photo' : incoming.audio ? '🎙️ Voice note' : 'Sent an attachment'),
+            tag: conversation.id,
+          });
+          notification.onclick = () => {
+            window.focus();
+            router.push(`/conversations/${conversation.id}`);
+          };
+        }
+      }
+
       setItems((current) => current.map((currentConversation) => {
         if (currentConversation.id === conversation.id) {
           return {
@@ -156,6 +204,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             ...(conversation.messages ? { messages: conversation.messages } : {}),
             ...(conversation.archivedByIds ? { archivedByIds: conversation.archivedByIds } : {}),
             ...(conversation.pinnedByIds ? { pinnedByIds: conversation.pinnedByIds } : {}),
+            ...(conversation.mutedByIds ? { mutedByIds: conversation.mutedByIds } : {}),
           };
         }
 
@@ -189,7 +238,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       channel.unbind('conversation:remove', removeHandler)
       pusherClient.unsubscribe(userChannel(pusherKey))
     }
-  }, [pusherKey, router]);
+  }, [pusherKey, router, currentUserEmail, currentUserId]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((current) =>
@@ -447,6 +496,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               onToggleSelect={() => toggleSelect(item.id)}
               onSwipeArchive={() => setArchived([item.id], !archivedView)}
               swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
+              isMuted={isMuted(item)}
             />
           ))}
           {todayItems.length > 0 && (
@@ -462,6 +512,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               onToggleSelect={() => toggleSelect(item.id)}
               onSwipeArchive={() => setArchived([item.id], !archivedView)}
               swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
+              isMuted={isMuted(item)}
             />
           ))}
           {earlierItems.length > 0 && (
@@ -477,6 +528,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               onToggleSelect={() => toggleSelect(item.id)}
               onSwipeArchive={() => setArchived([item.id], !archivedView)}
               swipeActionLabel={archivedView ? 'Unarchive' : 'Archive'}
+              isMuted={isMuted(item)}
             />
           ))}
           {filteredItems.length === 0 && (

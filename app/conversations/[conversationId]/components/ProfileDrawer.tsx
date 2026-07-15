@@ -8,7 +8,9 @@ import { Conversation, User } from "@prisma/client";
 import { format } from "date-fns";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { IoClose, IoTrash } from 'react-icons/io5';
-import { HiOutlineUserPlus, HiOutlineUserMinus } from 'react-icons/hi2';
+import { HiOutlineUserPlus, HiOutlineUserMinus, HiOutlineShieldCheck, HiOutlineBell, HiOutlineBellSlash, HiOutlineArrowRightOnRectangle } from 'react-icons/hi2';
+import useWallpaper, { WALLPAPERS } from "@/app/hooks/useWallpaper";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axios from "axios";
@@ -78,6 +80,58 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                 toast.success('Members added');
                 setAddOpen(false);
                 setSelectedMembers([]);
+                router.refresh();
+            })
+            .catch((error) => toast.error(error?.response?.data?.message || 'Something went wrong'))
+            .finally(() => setIsMutating(false));
+    };
+
+    const isMuted = (data.mutedByIds ?? []).includes(currentUserId || '');
+    const wallpaperKey = useWallpaper((state) => state.byConversation[data.id]) || 'default';
+    const setWallpaper = useWallpaper((state) => state.setWallpaper);
+    const hydrateWallpaper = useWallpaper((state) => state.hydrate);
+
+    useEffect(() => {
+        hydrateWallpaper(data.id);
+    }, [data.id, hydrateWallpaper]);
+
+    const toggleMute = () => {
+        if (isMutating) {
+            return;
+        }
+        setIsMutating(true);
+        axios.post(`/api/conversations/${data.id}/mute`, { muted: !isMuted })
+            .then(() => {
+                toast.success(isMuted ? 'Notifications unmuted' : 'Conversation muted');
+                router.refresh();
+            })
+            .catch(() => toast.error('Something went wrong'))
+            .finally(() => setIsMutating(false));
+    };
+
+    const handlePromote = (userId: string) => {
+        if (isMutating) {
+            return;
+        }
+        setIsMutating(true);
+        axios.post(`/api/conversations/${data.id}/members`, { action: 'promote', userId })
+            .then(() => {
+                toast.success('Admin added');
+                router.refresh();
+            })
+            .catch((error) => toast.error(error?.response?.data?.message || 'Something went wrong'))
+            .finally(() => setIsMutating(false));
+    };
+
+    const handleLeaveGroup = () => {
+        if (isMutating) {
+            return;
+        }
+        setIsMutating(true);
+        axios.post(`/api/conversations/${data.id}/members`, { action: 'leave' })
+            .then(() => {
+                toast.success('You left the group');
+                router.push('/conversations');
                 router.refresh();
             })
             .catch((error) => toast.error(error?.response?.data?.message || 'Something went wrong'))
@@ -250,15 +304,28 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                                             <p className="truncate text-xs text-slate-500">{user.email}</p>
                                                                         </div>
                                                                         {isAdmin && !adminIds.includes(user.id) && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleRemoveMember(user.id)}
-                                                                                disabled={isMutating}
-                                                                                className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-40"
-                                                                                aria-label={`Remove ${user.name} from group`}
-                                                                            >
-                                                                                <HiOutlineUserMinus className="size-4" />
-                                                                            </button>
+                                                                            <div className="flex shrink-0 items-center">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handlePromote(user.id)}
+                                                                                    disabled={isMutating}
+                                                                                    title="Make admin"
+                                                                                    className="grid size-8 place-items-center rounded-lg text-slate-500 transition hover:bg-violet-400/15 hover:text-violet-200 disabled:opacity-40"
+                                                                                    aria-label={`Make ${user.name} an admin`}
+                                                                                >
+                                                                                    <HiOutlineShieldCheck className="size-4" />
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleRemoveMember(user.id)}
+                                                                                    disabled={isMutating}
+                                                                                    title="Remove from group"
+                                                                                    className="grid size-8 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-40"
+                                                                                    aria-label={`Remove ${user.name} from group`}
+                                                                                >
+                                                                                    <HiOutlineUserMinus className="size-4" />
+                                                                                </button>
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 ))}
@@ -285,8 +352,70 @@ const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                                                     )}
                                                 </div>
 
+                                                {/* Preferences */}
+                                                <div className="mt-7 w-full">
+                                                    <p className="font-mono text-[10px] uppercase tracking-[0.17em] text-slate-500">
+                                                        Preferences
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleMute}
+                                                        disabled={isMutating}
+                                                        className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-white/[0.035] px-3.5 py-3 transition hover:bg-white/[0.06] disabled:opacity-50"
+                                                    >
+                                                        <span className="flex items-center gap-2.5 text-sm text-slate-200">
+                                                            {isMuted
+                                                              ? <HiOutlineBellSlash className="size-4 text-slate-400" />
+                                                              : <HiOutlineBell className="size-4 text-slate-400" />}
+                                                            Mute notifications
+                                                        </span>
+                                                        <span className={clsx(
+                                                            "relative h-5 w-9 rounded-full transition-colors",
+                                                            isMuted ? "bg-violet-400" : "bg-white/[0.1]"
+                                                        )}>
+                                                            <span className={clsx(
+                                                                "absolute top-0.5 size-4 rounded-full bg-white transition-all",
+                                                                isMuted ? "left-[18px]" : "left-0.5"
+                                                            )} />
+                                                        </span>
+                                                    </button>
+
+                                                    <div className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.035] px-3.5 py-3">
+                                                        <p className="text-sm text-slate-200">Chat wallpaper</p>
+                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                            {Object.entries(WALLPAPERS).map(([key, wallpaper]) => (
+                                                                <button
+                                                                    key={key}
+                                                                    type="button"
+                                                                    onClick={() => setWallpaper(data.id, key)}
+                                                                    title={wallpaper.label}
+                                                                    aria-label={`Wallpaper: ${wallpaper.label}`}
+                                                                    className={clsx(
+                                                                        "size-9 rounded-lg border transition",
+                                                                        wallpaper.swatch,
+                                                                        wallpaperKey === key
+                                                                          ? "border-violet-300 ring-2 ring-violet-400/30"
+                                                                          : "border-white/10 hover:border-white/30"
+                                                                    )}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 {/* Danger zone */}
                                                 <div className="mt-auto w-full pt-10">
+                                                    {data.isGroup && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleLeaveGroup}
+                                                            disabled={isMutating}
+                                                            className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08] active:scale-[0.98] disabled:opacity-50"
+                                                        >
+                                                            <HiOutlineArrowRightOnRectangle className="size-4" />
+                                                            Leave group
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => setConfirmOpen(true)}

@@ -15,11 +15,22 @@ export const messageSchema = z
   .object({
     message: z.string().trim().max(5000).optional(),
     image: z.url().optional(),
+    audio: z.url().optional(),
+    fileUrl: z.url().optional(),
+    fileName: z.string().trim().max(200).optional(),
+    fileType: z.string().trim().max(50).optional(),
     conversationId: objectId,
+    replyToId: objectId.optional(),
   })
-  .refine((data) => (data.message?.length ?? 0) > 0 || !!data.image, {
-    message: "Message or image required",
-  });
+  .refine(
+    (data) =>
+      (data.message?.length ?? 0) > 0 || !!data.image || !!data.audio || !!data.fileUrl,
+    { message: "Message content required" }
+  );
+
+export const editMessageSchema = z.object({
+  message: z.string().trim().min(1, "Message can't be empty").max(5000),
+});
 
 export const settingsSchema = z.object({
   name: z.string().trim().min(1).max(50).optional(),
@@ -44,5 +55,12 @@ export const memberActionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('remove'),
     userId: objectId,
+  }),
+  z.object({
+    action: z.literal('promote'),
+    userId: objectId,
+  }),
+  z.object({
+    action: z.literal('leave'),
   }),
 ]);

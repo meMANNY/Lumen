@@ -31,12 +31,15 @@ const UserList: React.FC<UserListProps> = ({
 
   const filteredItems = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
-    if (!trimmed) {
-      return items;
-    }
-    return items.filter((user) =>
-      (user.name || '').toLowerCase().includes(trimmed) ||
-      (user.email || '').toLowerCase().includes(trimmed)
+    const matching = trimmed
+      ? items.filter((user) =>
+          (user.name || '').toLowerCase().includes(trimmed) ||
+          (user.email || '').toLowerCase().includes(trimmed)
+        )
+      : items;
+    // Case-insensitive alphabetical order (DB sort is case-sensitive)
+    return [...matching].sort((a, b) =>
+      (a.name || a.email || '').localeCompare(b.name || b.email || '', undefined, { sensitivity: 'base' })
     );
   }, [items, query]);
 

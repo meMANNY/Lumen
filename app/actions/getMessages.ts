@@ -1,6 +1,7 @@
 import prisma from "@/app/libs/prismadb";
 import getCurrentUser from "./getCurrentUser";
 import getConversationForUser from "@/app/libs/getConversationForUser";
+import { messageInclude } from "@/app/libs/messageInclude";
 
 export const MESSAGES_PAGE_SIZE = 50;
 
@@ -22,10 +23,7 @@ const getMessages = async (conversationId: string) => {
       where: {
         conversationId,
       },
-      include: {
-        sender: true,
-        seen: true,
-      },
+      include: messageInclude,
       orderBy: {
         createdAt: 'desc',
       },

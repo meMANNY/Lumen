@@ -64,6 +64,11 @@ export async function POST(
       include: {
         sender: true,
         seen: true,
+        replyTo: {
+          include: {
+            sender: true,
+          },
+        },
       }
     });
 

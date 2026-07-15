@@ -12,6 +12,9 @@ import AvatarGroup from "@/app/components/AvatarGroup";
 import useOtherUser from "@/app/hooks/useOtherUser";
 import useActiveList from "@/app/hooks/useActiveList";
 import { FullMessageType } from "@/app/types";
+import { useSession } from "next-auth/react";
+import { HiStar } from "react-icons/hi";
+import { format as formatDate } from "date-fns";
 import ProfileDrawer from "./ProfileDrawer";
 import ImageModal from "./ImageModal";
 
@@ -25,10 +28,12 @@ interface SharedSpaceProps {
 const SharedSpace: React.FC<SharedSpaceProps> = ({ conversation, messages }) => {
   const otherUser = useOtherUser(conversation);
   const { members } = useActiveList();
+  const session = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const isActive = members.indexOf(otherUser?.id!) !== -1;
+  const currentUserId = session.data?.user?.id;
 
   const imageMessages = useMemo(() => {
     return messages
@@ -36,6 +41,22 @@ const SharedSpace: React.FC<SharedSpaceProps> = ({ conversation, messages }) => 
       .slice(-5)
       .reverse();
   }, [messages]);
+
+  const starredMessages = useMemo(() => {
+    if (!currentUserId) {
+      return [];
+    }
+    return messages
+      .filter((message) => (message.starredByIds || []).includes(currentUserId) && !message.isDeleted)
+      .slice(-5)
+      .reverse();
+  }, [messages, currentUserId]);
+
+  const scrollToMessage = (messageId: string) => {
+    document
+      .getElementById(`message-${messageId}`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  };
 
   const statusText = conversation.isGroup
     ? `${conversation.users.length} members`
@@ -138,6 +159,33 @@ const SharedSpace: React.FC<SharedSpaceProps> = ({ conversation, messages }) => 
               <div className="col-span-3 grid place-items-center rounded-lg bg-white/[0.04] py-6 text-slate-600">
                 <HiOutlinePhotograph className="size-5" />
                 <p className="mt-2 text-[11px]">No media shared yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.17em] text-slate-500">Starred</p>
+          <div className="mt-4 space-y-2">
+            {starredMessages.map((message) => (
+              <button
+                key={message.id}
+                type="button"
+                onClick={() => scrollToMessage(message.id)}
+                className="block w-full rounded-xl border border-white/[0.07] bg-white/[0.035] px-3 py-2.5 text-left transition hover:bg-white/[0.07]"
+              >
+                <span className="block truncate text-xs leading-5 text-slate-300">
+                  {message.image ? '📷 Photo' : message.audio ? '🎙️ Voice note' : message.fileUrl ? `📎 ${message.fileName || 'File'}` : `"${message.body}"`}
+                </span>
+                <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.13em] text-slate-600">
+                  {formatDate(new Date(message.createdAt), 'MMM d')} · {message.sender?.name}
+                </span>
+              </button>
+            ))}
+            {starredMessages.length === 0 && (
+              <div className="grid place-items-center rounded-lg bg-white/[0.04] py-6 text-slate-600">
+                <HiStar className="size-5" />
+                <p className="mt-2 text-[11px]">No starred messages yet</p>
               </div>
             )}
           </div>

@@ -5,6 +5,8 @@ import { pusherServer } from "@/app/libs/pusher";
 import getConversationForUser from "@/app/libs/getConversationForUser";
 import { messageSchema, objectId } from "@/app/libs/validations";
 import { conversationChannel, userChannel } from "@/app/libs/channels";
+import { messageInclude } from "@/app/libs/messageInclude";
+import { buildLinkPreview } from "@/app/libs/linkPreview";
 import { MESSAGES_PAGE_SIZE } from "@/app/actions/getMessages";
 
 export async function GET(request: Request) {
@@ -35,7 +37,7 @@ export async function GET(request: Request) {
 
         const items = await prisma.message.findMany({
             where: { conversationId },
-            include: { sender: true, seen: true },
+            include: messageInclude,
             orderBy: { createdAt: 'desc' },
             take: MESSAGES_PAGE_SIZE + 1,
             ...(cursor && { cursor: { id: cursor }, skip: 1 }),
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
             return NextResponse.json(parsed.error.flatten(), { status: 400 });
         }
 
-        const { message, image, conversationId } = parsed.data;
+        const { message, image, audio, fileUrl, fileName, fileType, conversationId, replyToId } = parsed.data;
 
         const conversation = await getConversationForUser(conversationId, currentUser.id);
 
@@ -79,19 +81,33 @@ export async function POST(request: Request) {
             return new NextResponse("Forbidden", { status: 403 });
         }
 
+        // A quoted message must belong to the same conversation
+        if (replyToId) {
+            const quoted = await prisma.message.findUnique({ where: { id: replyToId } });
+            if (!quoted || quoted.conversationId !== conversationId) {
+                return NextResponse.json({ message: 'Invalid reply target' }, { status: 400 });
+            }
+        }
+
+        // Best-effort OpenGraph card for the first URL in the text
+        const linkPreview = await buildLinkPreview(message);
+
         // Create message with sender already marked as seen
         const newMessage = await prisma.message.create({
             data: {
                 body: message,
                 image: image,
+                audio: audio,
+                fileUrl: fileUrl,
+                fileName: fileName,
+                fileType: fileType,
+                linkPreview: linkPreview ?? undefined,
                 conversationId: conversationId,
                 senderId: currentUser.id,
-                seenIds: [currentUser.id]
+                seenIds: [currentUser.id],
+                replyToId: replyToId ?? null
             },
-            include: {
-                sender: true,
-                seen: true
-            }
+            include: messageInclude
         });
 
         await prisma.conversation.update({

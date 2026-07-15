@@ -18,6 +18,12 @@ export async function POST(request: Request) {
   const socketId = formData.get("socket_id") as string | null;
   const channel = formData.get("channel_name") as string | null;
 
+  // Rough "last seen" heartbeat — fire and forget
+  prisma.user.update({
+    where: { id: userId },
+    data: { lastSeenAt: new Date() },
+  }).catch(() => {});
+
   if (!socketId || !channel) {
     return new NextResponse("Bad Request", { status: 400 });
   }

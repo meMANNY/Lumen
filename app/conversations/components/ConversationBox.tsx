@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 import { HiCheck } from 'react-icons/hi';
-import { HiArchiveBox } from 'react-icons/hi2';
+import { HiArchiveBox, HiOutlineBellSlash } from 'react-icons/hi2';
 import { BsPinAngleFill } from 'react-icons/bs';
 import { FullConversationType } from '@/app/types';
 import useOtherUser from '@/app/hooks/useOtherUser';
@@ -19,6 +19,7 @@ interface ConversationBoxProps {
     selectMode?: boolean;
     isChecked?: boolean;
     isPinned?: boolean;
+    isMuted?: boolean;
     onToggleSelect?: () => void;
     // Called when the row is swiped left past the threshold (mobile)
     onSwipeArchive?: () => void;
@@ -34,6 +35,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({
     selectMode,
     isChecked,
     isPinned,
+    isMuted,
     onToggleSelect,
     onSwipeArchive,
     swipeActionLabel = 'Archive'
@@ -172,6 +174,9 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({
                                 {data.name || otherUser?.name}
                             </span>
                             <span className="flex shrink-0 items-center gap-1.5">
+                                {isMuted && (
+                                    <HiOutlineBellSlash className="size-3 text-slate-500" aria-label="Muted" />
+                                )}
                                 {isPinned && (
                                     <BsPinAngleFill className={clsx("size-3", selected ? "text-violet-200" : "text-violet-300/70")} />
                                 )}
@@ -199,7 +204,7 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({
                         </p>
                     </div>
                 </div>
-                {!selectMode && !hasSeen && (
+                {!selectMode && !hasSeen && !isMuted && (
                     <span className="grid size-5 shrink-0 place-items-center rounded-full bg-violet-300 font-mono text-[10px] font-bold text-violet-950">
                         1
                     </span>

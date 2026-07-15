@@ -3,14 +3,18 @@
 import Avatar from "@/app/components/Avatar";
 import useOtherUser from "@/app/hooks/useOtherUser";
 import { Conversation, User } from "@prisma/client";
+import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { HiChevronDown, HiChevronLeft, HiChevronUp, HiSearch, HiX } from "react-icons/hi";
 import { HiEllipsisHorizontal } from "react-icons/hi2";
 import ProfileDrawer from "./ProfileDrawer";
 import AvatarGroup from "@/app/components/AvatarGroup";
 import useActiveList from "@/app/hooks/useActiveList";
 import useChatSearch from "@/app/hooks/useChatSearch";
+import { pusherClient } from "@/app/libs/pusher";
+import { conversationChannel } from "@/app/libs/channels";
 import clsx from "clsx";
 
 
@@ -30,6 +34,38 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
     const search = useChatSearch();
     const searchInputRef = useRef<HTMLInputElement>(null);
 
+    const session = useSession();
+    const currentUserId = session.data?.user?.id;
+    const [typingName, setTypingName] = useState<string | null>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Show "typing…" while typing events keep arriving; expire after 3s of silence.
+    // Body owns subscribe/unsubscribe for this channel — we only bind here.
+    useEffect(() => {
+        const channel = pusherClient.subscribe(conversationChannel(conversation.id));
+
+        const typingHandler = (payload: { userId: string; name: string }) => {
+            if (payload.userId === currentUserId) {
+                return;
+            }
+            setTypingName(payload.name);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+            typingTimeoutRef.current = setTimeout(() => setTypingName(null), 3000);
+        };
+
+        channel.bind('typing', typingHandler);
+
+        return () => {
+            channel.unbind('typing', typingHandler);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+            setTypingName(null);
+        };
+    }, [conversation.id, currentUserId]);
+
     useEffect(() => {
         if (search.isOpen) {
             searchInputRef.current?.focus();
@@ -47,8 +83,14 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
         if (conversation.isGroup) {
             return `${conversation.users.length} members`;
         }
-        return isActive ? 'Active now' : 'Offline';
-    }, [conversation, isActive])
+        if (isActive) {
+            return 'Active now';
+        }
+        if (otherUser?.lastSeenAt) {
+            return `last seen ${formatDistanceToNow(new Date(otherUser.lastSeenAt), { addSuffix: true })}`;
+        }
+        return 'Offline';
+    }, [conversation, isActive, otherUser?.lastSeenAt])
     return (
         <>
             <ProfileDrawer
@@ -101,9 +143,13 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                         </h2>
                         <p className={clsx(
                             "text-xs font-medium mt-0.5",
-                            conversation.isGroup ? "text-slate-400" : (isActive ? "text-emerald-300" : "text-slate-500")
+                            typingName
+                              ? "text-emerald-300"
+                              : conversation.isGroup ? "text-slate-400" : (isActive ? "text-emerald-300" : "text-slate-500")
                         )}>
-                            {statusText}
+                            {typingName
+                              ? (conversation.isGroup ? `${typingName} is typing…` : 'typing…')
+                              : statusText}
                         </p>
                     </div>
                 </div>

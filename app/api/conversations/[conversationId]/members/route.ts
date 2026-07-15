@@ -44,12 +44,59 @@ export async function POST(
     }
 
     const adminIds = conversation.adminIds ?? [];
+    const isAdmin = adminIds.includes(currentUser.id);
 
-    if (!adminIds.includes(currentUser.id)) {
+    // Leaving is open to every member; everything else is admin-only
+    if (parsed.data.action === 'leave') {
+      const remainingUserIds = conversation.userIds.filter((id) => id !== currentUser.id);
+      let remainingAdminIds = adminIds.filter((id) => id !== currentUser.id);
+
+      // Group must never be left without an admin
+      if (remainingAdminIds.length === 0 && remainingUserIds.length > 0) {
+        remainingAdminIds = [remainingUserIds[0]];
+      }
+
+      if (remainingUserIds.length === 0) {
+        await prisma.conversation.delete({ where: { id: conversationId } });
+      } else {
+        await prisma.conversation.update({
+          where: { id: conversationId },
+          data: { userIds: remainingUserIds, adminIds: remainingAdminIds },
+        });
+      }
+
+      await pusherServer.trigger(userChannel(currentUser.id), 'conversation:remove', {
+        id: conversationId,
+      });
+
+      return NextResponse.json({ left: true });
+    }
+
+    if (!isAdmin) {
       return NextResponse.json(
         { message: 'Only group admins can manage members' },
         { status: 403 }
       );
+    }
+
+    if (parsed.data.action === 'promote') {
+      const { userId } = parsed.data;
+
+      if (!conversation.userIds.includes(userId)) {
+        return NextResponse.json({ message: 'User is not in this group' }, { status: 400 });
+      }
+
+      if (adminIds.includes(userId)) {
+        return NextResponse.json({ message: 'Already an admin' }, { status: 400 });
+      }
+
+      const updated = await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { adminIds: [...adminIds, userId] },
+        include: { users: true },
+      });
+
+      return NextResponse.json(updated);
     }
 
     if (parsed.data.action === 'add') {

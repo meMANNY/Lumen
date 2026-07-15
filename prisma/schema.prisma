@@ -19,6 +19,8 @@ model User {
   hashedPassword  String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  // Rough "last seen" — refreshed on realtime auth and message activity
+  lastSeenAt      DateTime?
 
   conversationIds String[] @db.ObjectId
   conversations Conversation[] @relation(fields: [conversationIds], references: [id])
@@ -61,6 +63,8 @@ model Conversation {
   adminIds String[] @db.ObjectId @default([])
   // Users who pinned this conversation to the top of their inbox
   pinnedByIds String[] @db.ObjectId @default([])
+  // Users who muted this conversation (no badges/notifications for them)
+  mutedByIds String[] @db.ObjectId @default([])
   
   messagesIds String[] @db.ObjectId
   messages Message[]
@@ -74,6 +78,28 @@ model Message {
   body String?
   image String?
   createdAt DateTime @default(now())
+  // "Delete for everyone" tombstone
+  isDeleted Boolean @default(false)
+  // "Delete for me" — users who hid this message from their own view
+  hiddenFromIds String[] @db.ObjectId @default([])
+  // Emoji reactions: { "❤️": [userId, ...], ... }
+  reactions Json?
+  // Set when the sender edits the message body
+  editedAt DateTime?
+  // Voice note URL (Cloudinary)
+  audio String?
+  // Generic file attachment (Cloudinary)
+  fileUrl String?
+  fileName String?
+  fileType String?
+  // Users who starred this message
+  starredByIds String[] @db.ObjectId @default([])
+  // OpenGraph card for the first URL in the body: { url, title, description, image, siteName }
+  linkPreview Json?
+  // Reply/quote (self-relation)
+  replyToId String? @db.ObjectId
+  replyTo Message? @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies Message[] @relation("MessageReplies")
 
   seenIds String[] @db.ObjectId
   seen User[] @relation("Seen", fields: [seenIds], references: [id])
