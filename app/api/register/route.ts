@@ -31,6 +31,18 @@ export async function POST(request: Request) {
 
         const { email, name, password } = parsed.data;
 
+        const existingName = await prisma.user.findFirst({
+            where: { name: { equals: name, mode: 'insensitive' } },
+            select: { id: true }
+        });
+
+        if (existingName) {
+            return NextResponse.json(
+                { message: 'Username already taken — try another one' },
+                { status: 409 }
+            );
+        }
+
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const user = await prisma.user.create({

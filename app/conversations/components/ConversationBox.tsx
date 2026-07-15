@@ -37,15 +37,16 @@ const ConversationBox: React.FC<ConversationBoxProps> = ({ data, selected }) => 
     }, [session?.data?.user?.email])
 
     const hasSeen = useMemo(() => {
+        // No messages yet -> nothing to read, so don't flag as unread.
+        // Keep in sync with isUnread in ConversationList.
         if (!lastMessage) {
-            return false;
+            return true;
         }
 
         const seenArray = lastMessage.seen || [];
         if (!userEmail) {
-            return false;
+            return true;
         }
-        // seen is now User[] directly instead of MessageSeen[]
         return seenArray.some((user) => user.email === userEmail);
     }, [userEmail, lastMessage]);
 
