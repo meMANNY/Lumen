@@ -172,8 +172,9 @@ const ConversationList: React.FC<ConversationListProps> = ({
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">Lumen / inbox</p>
               <h1 className="mt-1.5 font-serif text-[27px] font-medium tracking-[-0.025em] text-white">Conversations</h1>
             </div>
-            <button 
-              onClick={() => setIsModalOpen(true)} 
+            <button
+              onClick={() => setIsModalOpen(true)}
+              suppressHydrationWarning
               className="
                 grid 
                 size-10 
@@ -196,6 +197,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             <HiSearch className="size-4" />
             <input
               ref={searchRef}
+              suppressHydrationWarning
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="w-full bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
@@ -208,6 +210,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
         <div className="flex items-center gap-4 border-b border-white/[0.07] px-6 shrink-0">
           <button
             onClick={() => setFilter('all')}
+            suppressHydrationWarning
             className={clsx(
               "pb-3 font-mono text-[10px] uppercase tracking-[0.13em] transition",
               filter === 'all'
@@ -219,6 +222,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
           </button>
           <button
             onClick={() => setFilter('unread')}
+            suppressHydrationWarning
             className={clsx(
               "pb-3 font-mono text-[10px] uppercase tracking-[0.13em] transition",
               filter === 'unread'
@@ -261,6 +265,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 
         <button
           onClick={() => setFilter(unreadCount > 0 ? 'unread' : 'all')}
+          suppressHydrationWarning
           className="mx-4 mb-5 flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3 text-left transition hover:bg-white/[0.07]"
         >
           <HiSparkles className="size-4 text-amber-300 shrink-0" />

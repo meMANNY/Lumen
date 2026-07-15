@@ -90,12 +90,13 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                     </div>
                 </div>
                 <div className="flex gap-1">
-                    <button className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white" aria-label="Search conversation">
+                    <button suppressHydrationWarning className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white" aria-label="Search conversation">
                         <HiSearch size={18} />
                     </button>
-                    <button 
-                        onClick={() => setDrawerOpen(true)} 
-                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white" 
+                    <button
+                        onClick={() => setDrawerOpen(true)}
+                        suppressHydrationWarning
+                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white"
                         aria-label="More options"
                     >
                         <HiEllipsisHorizontal size={19} />

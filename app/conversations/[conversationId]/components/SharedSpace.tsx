@@ -58,6 +58,7 @@ const SharedSpace: React.FC<SharedSpaceProps> = ({ conversation, messages }) => 
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate-500">Shared space</p>
           <button
             onClick={() => setDrawerOpen(true)}
+            suppressHydrationWarning
             className="text-slate-500 transition hover:text-white"
             aria-label="Conversation options"
           >
@@ -84,6 +85,7 @@ const SharedSpace: React.FC<SharedSpaceProps> = ({ conversation, messages }) => 
           )}
           <button
             onClick={() => setDrawerOpen(true)}
+            suppressHydrationWarning
             className="mt-4 rounded-lg border border-white/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.13em] text-violet-200 transition hover:bg-white/[0.06]"
           >
             View profile

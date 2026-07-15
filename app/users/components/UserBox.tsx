@@ -51,7 +51,6 @@ const UserBox: React.FC<UserBoxProps> = ({
         <Avatar user={data} />
         <div className="min-w-0 flex-1">
           <div className="focus:outline-none">
-            <span className="absolute inset-0" aria-hidden="true" />
             <div className="flex justify-between items-center mb-1">
               <span className="truncate text-sm font-semibold text-slate-100">
                 {data.name}

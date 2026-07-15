@@ -24,6 +24,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <textarea
           id={id}
           rows={1}
+          suppressHydrationWarning
           autoComplete={id}
           {...register(id, {required})}
           placeholder={placeholder}

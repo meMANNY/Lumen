@@ -75,11 +75,12 @@ const Form = () => {
                 placeholder="Write a message..."
                 onEnter={() => formRef.current?.requestSubmit()}
             />
-            <button className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-white/[0.07] hover:text-amber-200" type="button" aria-label="Add emoji">
+            <button suppressHydrationWarning className="grid size-10 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-white/[0.07] hover:text-amber-200" type="button" aria-label="Add emoji">
               <HiEmojiHappy size={18} />
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
+              suppressHydrationWarning
               className="
                 grid 
                 size-10 
