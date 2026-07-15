@@ -4,6 +4,7 @@ import { User } from "@prisma/client";
 import useActiveList from "../hooks/useActiveList";
 import Image from "next/image";
 import clsx from "clsx";
+import { gradientFor, initialsFor } from "../libs/avatar";
 
 interface AvatarProps {
   user?: User;
@@ -20,6 +21,12 @@ const Avatar: React.FC<AvatarProps> = ({ user, size = "md" }) => {
     lg: "h-12 w-12 md:h-14 md:w-14"
   };
 
+  const initialSizes = {
+    sm: "text-[10px]",
+    md: "text-[13px]",
+    lg: "text-[17px]"
+  };
+
   const statusSizes = {
     sm: "h-2 w-2 md:h-2.5 md:w-2.5",
     md: "h-2.5 w-2.5 md:h-3.5 md:w-3.5",
@@ -29,23 +36,36 @@ const Avatar: React.FC<AvatarProps> = ({ user, size = "md" }) => {
   return (
     <div className="relative shrink-0">
       <div className={clsx("relative inline-block rounded-full overflow-hidden", sizes[size])}>
-        <Image
-          fill
-          src={user?.image || '/images/placeholder.jpg'}
-          alt="Avatar"
-        />
+        {user?.image ? (
+          <Image
+            fill
+            src={user.image}
+            alt="Avatar"
+            className="object-cover"
+          />
+        ) : (
+          <div
+            className={clsx(
+              "flex h-full w-full items-center justify-center font-semibold tracking-wide text-white",
+              gradientFor(user),
+              initialSizes[size]
+            )}
+          >
+            {initialsFor(user)}
+          </div>
+        )}
       </div>
-      {isActive && ( 
-        <span 
+      {isActive && (
+        <span
           className={clsx(`
-            absolute 
-            block 
-            rounded-full 
-            bg-emerald-500 
+            absolute
+            block
+            rounded-full
+            bg-emerald-500
             animate-pulse-glow
-            ring-2 
-            ring-slate-950 
-            top-0 
+            ring-2
+            ring-slate-950
+            top-0
             right-0
           `, statusSizes[size])}
         />

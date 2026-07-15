@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { FullMessageType } from "@/app/types";
 
 import Avatar from "@/app/components/Avatar";
+import { gradientFor, initialsFor } from "@/app/libs/avatar";
 import ImageModal from "./ImageModal";
 
 interface MessageBoxProps {
@@ -96,12 +97,22 @@ const MessageBox: React.FC<MessageBoxProps> = ({
               <span className="text-[10px] text-slate-500 font-medium">Seen</span>
               <div className="flex -space-x-1.5 overflow-hidden">
                 {seenUsers.map((user) => (
-                  <div key={user.id} className="relative h-4.5 w-4.5 rounded-full ring-1 ring-slate-950 overflow-hidden">
-                    <Image
-                      fill
-                      src={user.image || '/images/placeholder.jpg'}
-                      alt="Seen avatar"
-                    />
+                  <div key={user.id} className="relative h-[18px] w-[18px] rounded-full ring-1 ring-slate-950 overflow-hidden">
+                    {user.image ? (
+                      <Image
+                        fill
+                        src={user.image}
+                        alt="Seen avatar"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className={clsx(
+                        "flex h-full w-full items-center justify-center text-[7px] font-semibold text-white",
+                        gradientFor(user)
+                      )}>
+                        {initialsFor(user)}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
