@@ -107,16 +107,38 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                         </p>
                     </div>
                 </div>
-                {search.isOpen && (
+                <div className="flex gap-1">
+                    <button
+                        suppressHydrationWarning
+                        onClick={() => search.isOpen ? search.close() : search.open()}
+                        className={clsx(
+                            "grid size-10 place-items-center rounded-xl transition",
+                            search.isOpen
+                              ? "bg-white/[0.07] text-white"
+                              : "text-slate-400 hover:bg-white/[0.07] hover:text-white"
+                        )}
+                        aria-label="Search conversation"
+                    >
+                        <HiSearch size={18} />
+                    </button>
+                    <button
+                        onClick={() => setDrawerOpen(true)}
+                        suppressHydrationWarning
+                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white"
+                        aria-label="More options"
+                    >
+                        <HiEllipsisHorizontal size={19} />
+                    </button>
+                </div>
+            </div>
+
+            {search.isOpen && (
+                <div className="shrink-0 border-b border-white/[0.07] bg-[#0d0f19]/50 px-5 py-3 sm:px-8 [animation:auth-rise_0.25s_ease-out]">
                     <div className="
-                      absolute
-                      inset-x-3
-                      sm:inset-x-6
-                      top-1/2
-                      z-10
+                      mx-auto
                       flex
-                      h-12
-                      -translate-y-1/2
+                      h-11
+                      max-w-3xl
                       items-center
                       gap-2
                       rounded-2xl
@@ -183,26 +205,8 @@ const Header: React.FC<HeaderProps> = ({ conversation }) => {
                             <HiX size={16} />
                         </button>
                     </div>
-                )}
-                <div className="flex gap-1">
-                    <button
-                        suppressHydrationWarning
-                        onClick={search.open}
-                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white"
-                        aria-label="Search conversation"
-                    >
-                        <HiSearch size={18} />
-                    </button>
-                    <button
-                        onClick={() => setDrawerOpen(true)}
-                        suppressHydrationWarning
-                        className="grid size-10 place-items-center rounded-xl text-slate-400 transition hover:bg-white/[0.07] hover:text-white"
-                        aria-label="More options"
-                    >
-                        <HiEllipsisHorizontal size={19} />
-                    </button>
                 </div>
-            </div>
+            )}
         </>
     )
 }
