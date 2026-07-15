@@ -22,7 +22,13 @@ export async function POST(
       const parsed = groupConversationSchema.safeParse(body);
 
       if (!parsed.success) {
-        return NextResponse.json(parsed.error.flatten(), { status: 400 });
+        return NextResponse.json(
+          {
+            message: parsed.error.issues[0]?.message ?? 'Invalid group details',
+            errors: parsed.error.flatten()
+          },
+          { status: 400 }
+        );
       }
 
       const { name, members } = parsed.data;

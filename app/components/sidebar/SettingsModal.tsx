@@ -11,6 +11,8 @@ import Input from "../input/Input";
 import Image from "next/image";
 import { CldUploadButton } from "next-cloudinary";
 import Button from "../Button";
+import { gradientFor, initialsFor } from "@/app/libs/avatar";
+import clsx from "clsx";
 
 interface SettingsModalProps{
     isOpen?: boolean;
@@ -57,57 +59,58 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
    <Modal isOpen = {isOpen} onClose={onClose}>
     <form onSubmit={handleSubmit(onSubmit)}>
-    <div className="space-y-12">
-          <div className="border-b border-gray-900/10 pb-12">
-            <h2 
-              className="
-                text-base 
-                font-semibold 
-                leading-7 
-                text-gray-900
-              "
-            >
+    <div>
+          <div className="border-b border-white/[0.07] pb-8">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet-300">
+              Lumen / settings
+            </p>
+            <h2 className="mt-2 font-serif text-[24px] font-medium tracking-[-0.02em] text-white">
               Profile
             </h2>
-            <p className="mt-1 text-sm leading-6 text-gray-600">
+            <p className="mt-1 text-sm leading-6 text-slate-500">
               Edit your public information.
             </p>
 
-            <div className="mt-10 flex flex-col gap-y-8">
+            <div className="mt-8 flex flex-col gap-y-6">
               <Input
                 disabled={isLoading}
-                label="Name" 
-                id="name" 
-                errors={errors} 
-                required 
+                label="Name"
+                id="name"
+                errors={errors}
+                required
                 register={register}
               />
               <div>
-                <label 
-                  htmlFor="photo" 
-                  className="
-                    block 
-                    text-sm 
-                    font-medium 
-                    leading-6 
-                    text-gray-900
-                  "
+                <label
+                  htmlFor="photo"
+                  className="block font-mono text-[10px] uppercase tracking-[0.15em] text-slate-400"
                 >
                   Photo
                 </label>
-                <div className="mt-2 flex items-center gap-x-3">
-                  <Image
-                    width="48"
-                    height="48" 
-                    className="rounded-full" 
-                    src={image || currentUser?.image || '/images/placeholder.jpg'}
-                    alt="Avatar"
-                  />
-                  <CldUploadButton 
-                    options={{ maxFiles: 1 }} 
-                    onSuccess={handleUpload} 
+                <div className="mt-3 flex items-center gap-x-4">
+                  {(image || currentUser?.image) ? (
+                    <Image
+                      width="48"
+                      height="48"
+                      className="size-12 rounded-full object-cover ring-1 ring-white/10"
+                      src={image || currentUser?.image}
+                      alt="Avatar"
+                    />
+                  ) : (
+                    <div
+                      className={clsx(
+                        "flex size-12 items-center justify-center rounded-full text-[15px] font-semibold text-white ring-1 ring-white/10",
+                        gradientFor(currentUser)
+                      )}
+                    >
+                      {initialsFor(currentUser)}
+                    </div>
+                  )}
+                  <CldUploadButton
+                    options={{ maxFiles: 1 }}
+                    onSuccess={handleUpload}
                     uploadPreset="q4wapwim"
-                    className="flex justify-center rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/[0.09] hover:text-white"
                   >
                     Change
                   </CldUploadButton>

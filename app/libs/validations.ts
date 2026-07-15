@@ -28,8 +28,8 @@ export const settingsSchema = z.object({
 
 export const groupConversationSchema = z.object({
   isGroup: z.literal(true),
-  name: z.string().trim().min(1).max(50),
-  members: z.array(z.object({ value: objectId })).min(2),
+  name: z.string().trim().min(1, "Group name is required").max(50, "Group name is too long"),
+  members: z.array(z.object({ value: objectId })).min(2, "Select at least 2 members"),
 });
 
 export const singleConversationSchema = z.object({
