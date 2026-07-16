@@ -3,9 +3,12 @@ import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ 
+  // secureCookie must match how the auth handler names the session cookie:
+  // "__Secure-authjs.session-token" on HTTPS (production), plain on localhost.
+  const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET 
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: process.env.NODE_ENV === 'production',
   })
   
   const isLoggedIn = !!token
